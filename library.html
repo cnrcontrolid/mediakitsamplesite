@@ -810,7 +810,7 @@ function processBookCover(dataUrl) {
 
       /* Sample bg colour from top-left corner */
       const bgR = data[0], bgG = data[1], bgB = data[2];
-      const tol = 40;
+      const tol = 12;  /* tight — avoids eating bright image content (waves, sky, etc.) */
 
       /* BFS flood-fill from all 4 corners to remove background */
       const visited = new Uint8Array(W * H);
@@ -845,14 +845,15 @@ function processBookCover(dataUrl) {
       }
       if (maxX === 0) { minX = 0; minY = 0; maxX = W - 1; maxY = H - 1; }
 
-      /* Scale to fit 750×1000, centre, render on transparent canvas */
+      /* Scale to fit 1100×1467 (high-res), centre, render on transparent canvas */
       const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
-      const scale  = Math.min(750 / cropW, 1000 / cropH);
+      const OUT_W = 1100, OUT_H = 1467;
+      const scale  = Math.min(OUT_W / cropW, OUT_H / cropH, 1);  /* never upscale */
       const sw = Math.round(cropW * scale), sh = Math.round(cropH * scale);
-      const ox = Math.round((750 - sw) / 2),  oy = Math.round((1000 - sh) / 2);
+      const ox = Math.round((OUT_W - sw) / 2),  oy = Math.round((OUT_H - sh) / 2);
 
       const out = document.createElement('canvas');
-      out.width = 750; out.height = 1000;
+      out.width = OUT_W; out.height = OUT_H;
       const outCtx = out.getContext('2d');
       outCtx.imageSmoothingEnabled = true;
       outCtx.imageSmoothingQuality = 'high';
