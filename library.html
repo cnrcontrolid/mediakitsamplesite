@@ -503,11 +503,11 @@ async function confirmBook() {
     const book = { title: item.title, subtitle: item.subtitle, author: item.author,
                    bright: accent, dark, neutral, folder: folderName };
     const pages = {
-      'index.html':     genIndex(book),
-      'order.html':     genOrder(book),
-      'confirmed.html': genConfirmed(book),
-      'terms.html':     genTerms(book),
-      'privacy.html':   genPrivacy(book)
+      'index.html':     fixPaths(genIndex(book),     folderName),
+      'order.html':     fixPaths(genOrder(book),     folderName),
+      'confirmed.html': fixPaths(genConfirmed(book), folderName),
+      'terms.html':     fixPaths(genTerms(book),     folderName),
+      'privacy.html':   fixPaths(genPrivacy(book),   folderName)
     };
     for (const [name, html] of Object.entries(pages)) {
       const fh = await bookDir.getFileHandle(name, { create: true });
@@ -919,6 +919,16 @@ function slugify(s) {
 const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">`;
 
 const TABLE_FOOT = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;border-top:1px solid #ddd;"><tr><td style="padding:30px 20px;text-align:center;font-family:'Raleway',sans-serif;font-size:12px;color:#888;line-height:1.9;"><p>This is not part of Facebook website or Meta, Inc. This site is not endorsed by Facebook or Meta, Inc in anyway.</p><p>Results may not be typical or expected for every person. No results are guaranteed with the help of this book and systems described in the book. Individual results will vary according to effort, determination hard work and available budget.</p><p style="margin-top:6px;">Designed and Developed by <strong style="color:#333;">The Raymond Aaron Group</strong></p><p style="margin-top:10px;"><a href="privacy.html" style="color:#0174C7;">Privacy Policy</a> | <a href="terms.html" style="color:#0174C7;">Terms &amp; Conditions</a> | <a href="mailto:contact@example.com" style="color:#0174C7;">Contact Author</a></p></td></tr></table>`;
+
+function fixPaths(html, folder) {
+  if (!folder) return html;
+  const base = `/sites/${folder}`;
+  return html
+    .replace(/href="order\.html"/g,     `href="${base}/order.html"`)
+    .replace(/href="confirmed\.html"/g, `href="${base}/confirmed.html"`)
+    .replace(/href="terms\.html"/g,     `href="${base}/terms.html"`)
+    .replace(/href="privacy\.html"/g,   `href="${base}/privacy.html"`);
+}
 
 function genIndex(b) {
   const {title:t,subtitle:s,author:a,bright,dark,neutral,folder} = b;
