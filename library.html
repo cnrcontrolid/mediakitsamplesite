@@ -408,9 +408,13 @@ async function extractBookText(dataUrl, apiKey) {
         content: [
           { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
           { type: 'text',  text:
-            'This is a 3D book cover image. Read ALL text visible on the cover and extract: the main book title, the subtitle (if any), and the author name. ' +
-            'Return ONLY a valid JSON object: {"title":"...","subtitle":"...","author":"..."}. ' +
-            'If there is no subtitle use an empty string. No other text, just the JSON.'
+            'This is a 3D book cover image. Carefully read ALL visible text on the front cover and extract three fields:\n' +
+            '1. TITLE — the largest, most prominent text (the main book name)\n' +
+            '2. SUBTITLE — smaller descriptive text that appears just below the title, often explaining what the book is about (e.g. "How to...", "A guide to...", "The real story of..."). Look carefully — it is usually in a smaller font beneath the main title.\n' +
+            '3. AUTHOR — the person\'s name, usually near the bottom of the cover\n\n' +
+            'Return ONLY a valid JSON object with no extra text:\n' +
+            '{"title":"...","subtitle":"...","author":"..."}\n\n' +
+            'If you genuinely cannot find a subtitle, use an empty string for that field. Do NOT put subtitle text inside the title field.'
           }
         ]
       }]
