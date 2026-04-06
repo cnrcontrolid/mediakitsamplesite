@@ -489,7 +489,7 @@ async function confirmBook() {
 
     /* Write 5 HTML pages */
     const book = { title: item.title, subtitle: item.subtitle, author: item.author,
-                   bright: accent, dark, neutral };
+                   bright: accent, dark, neutral, folder: folderName };
     const pages = {
       'index.html':     genIndex(book),
       'order.html':     genOrder(book),
@@ -840,7 +840,8 @@ const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"><link 
 const TABLE_FOOT = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;border-top:1px solid #ddd;"><tr><td style="padding:30px 20px;text-align:center;font-family:'Raleway',sans-serif;font-size:12px;color:#888;line-height:1.9;"><p>This is not part of Facebook website or Meta, Inc. This site is not endorsed by Facebook or Meta, Inc in anyway.</p><p>Results may not be typical or expected for every person. No results are guaranteed with the help of this book and systems described in the book. Individual results will vary according to effort, determination hard work and available budget.</p><p style="margin-top:6px;">Designed and Developed by <strong style="color:#333;">The Raymond Aaron Group</strong></p><p style="margin-top:10px;"><a href="privacy.html" style="color:#0174C7;">Privacy Policy</a> | <a href="terms.html" style="color:#0174C7;">Terms &amp; Conditions</a> | <a href="mailto:contact@example.com" style="color:#0174C7;">Contact Author</a></p></td></tr></table>`;
 
 function genIndex(b) {
-  const {title:t,subtitle:s,author:a,bright,dark,neutral} = b;
+  const {title:t,subtitle:s,author:a,bright,dark,neutral,folder} = b;
+  const coverSrc = folder ? `/sites/${folder}/cover.png` : 'cover.png';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Pre-Order</title>${FONTS}<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:'Raleway',sans-serif;color:#333;background:#fff}img{max-width:100%;height:auto;display:block}a{text-decoration:none;color:inherit}
 .wrap{max-width:900px;margin:0 auto;padding:0 24px}
@@ -864,7 +865,7 @@ function genIndex(b) {
 </style></head><body>
 <div class="s01"><p>Pre-Order Today And Get A Signed Copy Of The Book!</p></div>
 <section class="s02"><div class="s02-inner">
-  <div class="s02-left"><img src="cover.png" alt="${t}" class="cover"><img src="../../secure order.png" alt="Secure Order" style="margin-top:20px;max-width:420px;width:100%;" onerror="this.style.display='none'"></div>
+  <div class="s02-left"><img src="${coverSrc}" alt="${t}" class="cover"><img src="../../secure order.png" alt="Secure Order" style="margin-top:20px;max-width:420px;width:100%;" onerror="this.style.display='none'"></div>
   <div class="s02-right">
     <h1 class="s02-title">${t}</h1><p class="s02-subtitle">${s}</p>
     <p class="s02-award">Award Winning Author</p><p class="s02-author">${a}</p>
@@ -873,7 +874,7 @@ function genIndex(b) {
   </div>
 </div></section>
 <section class="s03"><div class="s03-inner">
-  <div class="s03-left"><img src="cover.png" alt="${t}"></div>
+  <div class="s03-left"><img src="${coverSrc}" alt="${t}"></div>
   <div class="s03-right">
     <h1 class="s03-headline">${t}</h1><h2 class="s03-subheadline">${s}</h2>
     <p class="s03-credit">Foreword by Raymond Aaron &nbsp;·&nbsp; New York Times Bestselling Author</p>
@@ -919,7 +920,7 @@ function genIndex(b) {
       <div class="cd-unit"><div class="cd-num">15</div><div class="cd-lbl">Minutes</div></div><div class="cd-sep">:</div>
       <div class="cd-unit"><div class="cd-num">34</div><div class="cd-lbl">Seconds</div></div>
     </div>
-    <img src="cover.png" alt="${t}" class="cover">
+    <img src="${coverSrc}" alt="${t}" class="cover">
     <p class="cd-price"><span class="label">Pre-Launch Offer</span><span class="amount">$ 19.99</span></p>
     <p class="cd-price-note">Shipping &amp; Handling Fees Will Be Free If You Pre-Order Before The Timer Runs Out!</p>
     <a href="order.html" class="btn-cta-center" style="display:block">Pre-Order Your Copy<small>And Get Your Limited Edition Author Signed Book</small></a>
@@ -931,7 +932,8 @@ function genIndex(b) {
 }
 
 function genOrder(b) {
-  const {title:t,subtitle:s,bright,dark} = b;
+  const {title:t,subtitle:s,bright,dark,folder} = b;
+  const coverSrc = folder ? `/sites/${folder}/cover.png` : 'cover.png';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Complete Your Order</title>${FONTS}<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Raleway',sans-serif;color:#333;background:#F6F6F6}img{max-width:100%;height:auto;display:block}a{text-decoration:none;color:inherit}
 .order-header{background:${dark};padding:22px 24px}.oh-inner{max-width:1100px;margin:0 auto}.oh-top{text-align:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12)}.oh-top h1{font-family:'Oswald',sans-serif;font-size:clamp(22px,4vw,38px);font-weight:600;color:${bright};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.oh-top h2{font-family:'Oswald',sans-serif;font-size:clamp(16px,3vw,24px);font-weight:300;color:#fff}.oh-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}.oh-bottom .complete{font-family:'Raleway',sans-serif;font-size:35px;line-height:40px;font-weight:600;color:${bright}}.oh-bottom .help{font-family:'Raleway',sans-serif;font-size:20px;line-height:25px;color:rgba(255,255,255,.7);text-align:right}.oh-bottom .help a{color:${bright}}
@@ -950,13 +952,14 @@ function genOrder(b) {
     <a href="confirmed.html" class="btn-confirm">CONFIRM MY ORDER</a>
     <div class="trust-badges"><div class="badge"><span class="icon">🛡</span><span>Secure<br>Checkout</span></div><div class="badge"><span class="icon">✅</span><span>Satisfaction<br>Guarantee</span></div><div class="badge"><span class="icon">🔒</span><span>Privacy<br>Protected</span></div></div></div>
   </div>
-  <div class="promo-col"><div class="promo-countdown"><div class="cd-row"><div class="cd-block"><div class="num">31</div><div class="lbl">Days</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">00</div><div class="lbl">Hours</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">15</div><div class="lbl">Minutes</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">01</div><div class="lbl">Seconds</div></div></div></div><img src="cover.png" alt="${t}"><p class="signed">Get Your Signed Copy Today</p></div>
+  <div class="promo-col"><div class="promo-countdown"><div class="cd-row"><div class="cd-block"><div class="num">31</div><div class="lbl">Days</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">00</div><div class="lbl">Hours</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">15</div><div class="lbl">Minutes</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">01</div><div class="lbl">Seconds</div></div></div></div><img src="${coverSrc}" alt="${t}"><p class="signed">Get Your Signed Copy Today</p></div>
 </div>
 ${TABLE_FOOT}</body></html>`;
 }
 
 function genConfirmed(b) {
-  const {title:t,bright,dark} = b;
+  const {title:t,bright,dark,folder} = b;
+  const coverSrc = folder ? `/sites/${folder}/cover.png` : 'cover.png';
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Order Confirmed</title>${FONTS}<style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Raleway',sans-serif;color:#333;background:#fff}img{max-width:100%;height:auto;display:block}a{text-decoration:none;color:inherit}
 .confirm-header{background:${dark};padding:18px 24px 16px;text-align:center}.confirm-header h1{font-family:'Oswald',sans-serif;font-size:clamp(36px,5.5vw,64px);font-weight:700;color:#FFE600;text-transform:uppercase;letter-spacing:2px;line-height:1.05;margin-bottom:6px}.confirm-header h2{font-family:'Oswald',sans-serif;font-size:clamp(18px,3vw,30px);font-weight:600;color:#fff;margin-bottom:8px}.confirm-header .body-txt{font-family:'Raleway',sans-serif;font-size:14px;line-height:1.5;color:rgba(255,255,255,.85);max-width:700px;margin:0 auto 3px}.confirm-header em{font-style:italic;color:rgba(255,255,255,.6);font-size:13px}
@@ -966,7 +969,7 @@ function genConfirmed(b) {
 .site-footer{background:#f5f5f5;border-top:1px solid #ddd;padding:24px 20px;text-align:center;font-family:'Raleway',sans-serif;font-size:12px;color:#888;line-height:1.9}.site-footer a{color:#0174C7}.site-footer .footer-links{margin-top:8px}
 </style></head><body>
 <div class="confirm-header"><h1>Order Confirmed 👍</h1><h2>Congrats! Your Book Is On The Way</h2><p class="body-txt">You Will Receive Your Signed Copy Of The Book Once The Book Is Published, Thank you for your support.</p><p><em>(International Shipping Might Take A Bit Longer)</em></p></div>
-<div class="confirm-body"><div class="confirm-cover"><img src="cover.png" alt="${t}"></div><div class="confirm-right"><p class="ty">Thank you!</p><p class="ty-body">I will personally sign and send you a copy. Now, please answer the below question which will help me customize the book to you.</p><p class="survey-q">What Are You Most Looking Forward To In The Book?</p><form class="survey-form"><label class="survey-label"><span>Learning Practical Strategies</span><input type="radio" name="s"></label><label class="survey-label"><span>Gaining a Fresh Perspective</span><input type="radio" name="s"></label><label class="survey-label"><span>Building Confidence and Clarity</span><input type="radio" name="s"></label><label class="survey-label"><span>Creating Lasting Change</span><input type="radio" name="s"></label><label class="survey-label"><span>All of the Above</span><input type="radio" name="s"></label></form></div></div>
+<div class="confirm-body"><div class="confirm-cover"><img src="${coverSrc}" alt="${t}"></div><div class="confirm-right"><p class="ty">Thank you!</p><p class="ty-body">I will personally sign and send you a copy. Now, please answer the below question which will help me customize the book to you.</p><p class="survey-q">What Are You Most Looking Forward To In The Book?</p><form class="survey-form"><label class="survey-label"><span>Learning Practical Strategies</span><input type="radio" name="s"></label><label class="survey-label"><span>Gaining a Fresh Perspective</span><input type="radio" name="s"></label><label class="survey-label"><span>Building Confidence and Clarity</span><input type="radio" name="s"></label><label class="survey-label"><span>Creating Lasting Change</span><input type="radio" name="s"></label><label class="survey-label"><span>All of the Above</span><input type="radio" name="s"></label></form></div></div>
 <footer class="site-footer"><p>This is not part of Facebook website or Meta, Inc. This site is not endorsed by Facebook or Meta, Inc in anyway.</p><p>Results may not be typical or expected for every person.</p><p>Designed and Developed by <strong style="color:#333">The Raymond Aaron Group</strong></p><div class="footer-links"><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms &amp; Conditions</a> | <a href="mailto:contact@example.com">Contact Author</a></div></footer>
 </body></html>`;
 }
