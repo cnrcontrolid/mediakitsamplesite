@@ -66,6 +66,44 @@ td.link-cell a:hover { background: #444; }
 }
 .btn-delete-local:hover { background: #c0392b; color: #fff; }
 
+/* ── UPLOAD ZONE ── */
+#uploadModal {
+  display: none; position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0,0,0,.6); align-items: center; justify-content: center;
+}
+#uploadModal.open { display: flex; }
+.upload-box {
+  background: #fff; border-radius: 14px; width: 92vw; max-width: 520px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden;
+}
+.upload-box-header {
+  padding: 20px 24px 16px; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.upload-box-header h3 { font-family: 'Raleway', sans-serif; font-size: 17px; font-weight: 700; color: #1a1a1a; }
+.upload-close { background: none; border: none; cursor: pointer; font-size: 20px; color: #aaa; line-height: 1; padding: 2px 6px; }
+.upload-close:hover { color: #333; }
+.upload-zone {
+  margin: 20px 24px; border: 2.5px dashed #d0d0d0; border-radius: 12px;
+  padding: 40px 24px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.upload-zone:hover, .upload-zone.drag-over { border-color: #1a1a1a; background: #f9f9f9; }
+.upload-zone .uz-icon { font-size: 42px; margin-bottom: 12px; }
+.upload-zone p { font-family: 'Raleway', sans-serif; font-size: 15px; color: #555; margin-bottom: 6px; }
+.upload-zone .uz-hint { font-size: 12px; color: #aaa; }
+.upload-zone .uz-selected { font-size: 13px; color: #1a1a1a; font-weight: 700; margin-top: 10px; }
+.upload-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 10px; }
+.upload-btn-go {
+  background: #1a1a1a; color: #fff; font-family: 'Oswald', sans-serif;
+  font-size: 14px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 10px 24px; border: none; border-radius: 7px; cursor: pointer; transition: background .2s;
+}
+.upload-btn-go:hover { background: #333; }
+.upload-btn-go:disabled { background: #ccc; cursor: not-allowed; }
+.upload-btn-cancel { background: #f3f3f3; color: #666; font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 18px; border: none; border-radius: 7px; cursor: pointer; }
+.upload-btn-cancel:hover { background: #e8e8e8; }
+
 /* ── CHECKLIST MODAL ── */
 #checklistModal {
   display: none; position: fixed; inset: 0; z-index: 1100;
@@ -211,10 +249,6 @@ td.link-cell a:hover { background: #444; }
       <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   </button>
-  <button class="btn-delete-local" onclick="deleteLocalFiles()" title="Delete all local site folders once you've verified the sites are live">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></polyline></svg>
-    Delete Local Files
-  </button>
   <button class="btn-create" onclick="createSampleSites()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Create Sample Sites
@@ -238,6 +272,31 @@ td.link-cell a:hover { background: #444; }
         <button class="cl-btn cl-btn-skip"   onclick="skipChecklist()">Skip &amp; Push</button>
         <button class="cl-btn cl-btn-push"   id="clPushBtn" onclick="proceedAfterChecklist()">Push to GitHub</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── UPLOAD MODAL ── -->
+<div id="uploadModal">
+  <div class="upload-box">
+    <div class="upload-box-header">
+      <h3>Upload Book Cover Images</h3>
+      <button class="upload-close" onclick="closeUploadModal()">✕</button>
+    </div>
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleDrop(event)">
+      <div class="uz-icon">📁</div>
+      <p>Drag &amp; drop book cover images here</p>
+      <p>or click to browse files</p>
+      <p class="uz-hint">JPG or PNG — select multiple files at once</p>
+      <p class="uz-selected" id="uploadFileCount"></p>
+    </div>
+    <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleFileSelect(this.files)">
+    <div class="upload-footer">
+      <button class="upload-btn-cancel" onclick="closeUploadModal()">Cancel</button>
+      <button class="upload-btn-go" id="uploadGoBtn" onclick="processUploadedFiles()" disabled>Process Covers →</button>
     </div>
   </div>
 </div>
@@ -363,40 +422,31 @@ td.link-cell a:hover { background: #444; }
 /* ══════════════════════════════════════════════
    CREATE SAMPLE SITES
 ══════════════════════════════════════════════ */
-let _sitesDir  = null;
-let _sourceDir = null;
 let _queue     = [];
 let _qi        = 0;
+let _uploadedFiles = [];  /* files from the upload modal */
 
-/* ── IndexedDB: persist folder handles across page loads ── */
-function _getDB() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open('sampleSitesDB', 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = rej;
-  });
+/* ── Upload modal helpers ── */
+function closeUploadModal() {
+  document.getElementById('uploadModal').classList.remove('open');
 }
-async function _saveFolders(source, output) {
-  const db = await _getDB();
-  return new Promise((res, rej) => {
-    const tx = db.transaction('handles', 'readwrite');
-    tx.objectStore('handles').put(source, 'source');
-    tx.objectStore('handles').put(output, 'output');
-    tx.oncomplete = res; tx.onerror = rej;
-  });
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  handleFileSelect(e.dataTransfer.files);
 }
-async function _loadFolders() {
-  try {
-    const db = await _getDB();
-    return new Promise((res, rej) => {
-      const tx = db.transaction('handles', 'readonly');
-      const s  = tx.objectStore('handles').get('source');
-      const o  = tx.objectStore('handles').get('output');
-      tx.oncomplete = () => res({ source: s.result, output: o.result });
-      tx.onerror = rej;
-    });
-  } catch(e) { return { source: null, output: null }; }
+function handleFileSelect(files) {
+  const imgs = Array.from(files).filter(f => /\.(jpg|jpeg|png)$/i.test(f.name));
+  _uploadedFiles = imgs.sort((a, b) => a.name.localeCompare(b.name));
+  const countEl = document.getElementById('uploadFileCount');
+  const goBtn   = document.getElementById('uploadGoBtn');
+  if (_uploadedFiles.length === 0) {
+    countEl.textContent = 'No image files found — please select JPG or PNG files';
+    goBtn.disabled = true;
+  } else {
+    countEl.textContent = `✓ ${_uploadedFiles.length} image${_uploadedFiles.length > 1 ? 's' : ''} selected`;
+    goBtn.disabled = false;
+  }
 }
 
 /* ── Claude Vision: extract title / subtitle / author ── */
@@ -442,81 +492,41 @@ async function extractBookText(dataUrl, apiKey) {
   return JSON.parse(match[0]);
 }
 
-async function createSampleSites() {
-  if (!window.showDirectoryPicker) {
-    alert('This feature requires Chrome or Edge (File System Access API).');
-    return;
-  }
-
-  /* API key */
+function createSampleSites() {
+  /* API key check */
   const apiKey = document.getElementById('apiKeyInput').value.trim();
   if (!apiKey) {
-    alert('Please enter your Anthropic API key in the field above.');
+    alert('Please enter your Anthropic API key — click the ⚙ gear icon first.');
+    document.getElementById('settingsTray').classList.add('open');
     document.getElementById('apiKeyInput').focus();
     return;
   }
+  /* Reset file selection and open upload modal */
+  _uploadedFiles = [];
+  document.getElementById('uploadFileCount').textContent = '';
+  document.getElementById('uploadGoBtn').disabled = true;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadModal').classList.add('open');
+}
 
-  /* ── Folder setup: restore saved handles, else pick ── */
-  let sourceDir, outputDir;
-  const saved = await _loadFolders();
-
-  /* Try to reuse saved source folder */
-  if (saved.source) {
-    try {
-      const perm = await saved.source.requestPermission({ mode: 'readwrite' });
-      if (perm === 'granted') sourceDir = saved.source;
-    } catch(e) {}
-  }
-  if (!sourceDir) {
-    try { sourceDir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
-    catch(e) { return; }
-  }
-
-  /* Try to reuse saved output folder */
-  if (saved.output) {
-    try {
-      const perm = await saved.output.requestPermission({ mode: 'readwrite' });
-      if (perm === 'granted') outputDir = saved.output;
-    } catch(e) {}
-  }
-  if (!outputDir) {
-    try { outputDir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
-    catch(e) { return; }
-  }
-
-  /* Persist for next time */
-  _sitesDir  = outputDir;
-  _sourceDir = sourceDir;
-  await _saveFolders(sourceDir, outputDir);
-
-  /* ── Scan all image files (skip subfolders) ── */
-  const imageHandles = [];
-  for await (const [name, handle] of sourceDir.entries()) {
-    if (handle.kind === 'directory') continue;
-    if (!/\.(jpg|jpeg|png)$/i.test(name)) continue;
-    imageHandles.push({ name, handle });
-  }
-  imageHandles.sort((a, b) => a.name.localeCompare(b.name));
-
-  if (imageHandles.length === 0) {
-    alert('No image files found in the selected folder.');
-    return;
-  }
+async function processUploadedFiles() {
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (_uploadedFiles.length === 0) return;
+  closeUploadModal();
 
   /* ── Build queue: remove bg + Vision extraction ── */
   _queue = [];
-  for (let i = 0; i < imageHandles.length; i++) {
-    const { name, handle } = imageHandles[i];
+  for (let i = 0; i < _uploadedFiles.length; i++) {
+    const file = _uploadedFiles[i];
 
-    showProgress(`Cover ${i + 1} of ${imageHandles.length}: removing background…`);
-    const file    = await handle.getFile();
+    showProgress(`Cover ${i + 1} of ${_uploadedFiles.length}: removing background…`);
     const dataUrl = await fileToDataUrl(file);
 
-    /* Remove background + crop/pad to 750×1000 */
+    /* Remove background + crop/pad to 1100×1467 */
     const processedDataUrl = await processBookCover(dataUrl);
 
-    showProgress(`Cover ${i + 1} of ${imageHandles.length}: reading with Claude Vision…`);
-    const smallDataUrl = await resizeDataUrl(dataUrl, 800);  /* use original for sharper text */
+    showProgress(`Cover ${i + 1} of ${_uploadedFiles.length}: reading with Claude Vision…`);
+    const smallDataUrl = await resizeDataUrl(dataUrl, 800);
 
     let title = '', author = '', subtitle = '';
     try {
@@ -529,9 +539,9 @@ async function createSampleSites() {
       await new Promise(r => setTimeout(r, 4000));
     }
 
-    _queue.push({ file, dataUrl: processedDataUrl, originalName: name, title, subtitle, author });
+    _queue.push({ file, dataUrl: processedDataUrl, originalName: file.name, title, subtitle, author });
 
-    if (i < imageHandles.length - 1) await new Promise(r => setTimeout(r, 300));
+    if (i < _uploadedFiles.length - 1) await new Promise(r => setTimeout(r, 300));
   }
 
   hideProgress();
@@ -552,9 +562,8 @@ function showNextModal() {
         document.getElementById('deployCmd').style.display = 'none';
       } else {
         document.getElementById('deployCmd').style.display = '';
-        showBanner('🚀', 'Sites created! Push to GitHub to go live on Vercel',
-          'Files saved to your local sites/ folder. Run in Terminal:',
-          'cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add sites/\ngit commit -m "Add generated sample sites"\ngit push');
+        showBanner('⚠️', 'No GitHub token set — sites not deployed',
+          'Add your GitHub token via the ⚙ gear icon and re-run to auto-deploy to Vercel.', '');
       }
     }
     return;
@@ -593,16 +602,9 @@ async function confirmBook() {
     /* Extract colours */
     const { accent, dark, neutral } = await extractColors(item.dataUrl);
 
-    /* Create directory inside the chosen sites folder */
-    const bookDir = await _sitesDir.getDirectoryHandle(folderName, { create: true });
-
-    /* Write cover.png */
+    /* Build all files in memory — no local disk writes needed */
     const pngBlob = await dataUrlToPng(item.dataUrl);
-    const coverFH = await bookDir.getFileHandle('cover.png', { create: true });
-    const cw = await coverFH.createWritable();
-    await cw.write(pngBlob); await cw.close();
 
-    /* Write 5 HTML pages */
     const book = { title: item.title, subtitle: item.subtitle, author: item.author,
                    bright: accent, dark, neutral, folder: folderName };
     const pages = {
@@ -612,24 +614,10 @@ async function confirmBook() {
       'terms.html':     fixPaths(genTerms(book),     folderName),
       'privacy.html':   fixPaths(genPrivacy(book),   folderName)
     };
-    for (const [name, html] of Object.entries(pages)) {
-      const fh = await bookDir.getFileHandle(name, { create: true });
-      const w  = await fh.createWritable();
-      await w.write(html); await w.close();
-    }
 
-    /* Move original 3D cover into the site folder (prevents re-generation & keeps it with the site) */
+    /* Keep original 3D cover as a blob for GitHub push */
     const origExt = item.originalName.split('.').pop().toLowerCase();
     const origArrayBuffer = await item.file.arrayBuffer();
-    try {
-      const origFH = await bookDir.getFileHandle(`3d-cover.${origExt}`, { create: true });
-      const origW  = await origFH.createWritable();
-      await origW.write(origArrayBuffer);
-      await origW.close();
-      await _sourceDir.removeEntry(item.originalName);
-    } catch(e) {
-      console.warn('Could not move original cover into site folder:', e.message);
-    }
 
     /* ── Run pre-deploy checklist ── */
     hideProgress();
@@ -637,8 +625,7 @@ async function confirmBook() {
       item.title, item.author, item.subtitle, folderName, pages, pngBlob
     );
     if (!checklistApproved) {
-      /* User cancelled — clean up local folder and abort */
-      try { await _sitesDir.removeEntry(folderName, { recursive: true }); } catch(_){}
+      /* User cancelled — skip this book */
       _qi++;
       showNextModal();
       return;
@@ -664,7 +651,6 @@ async function confirmBook() {
         } else {
           showProgress(`✅ "${item.title}" verified in GitHub — Vercel deploying…`);
           await new Promise(r => setTimeout(r, 1500));
-          /* Local files intentionally kept — use "Delete Local Files" button when ready */
         }
       } catch(e) {
         console.error('GitHub push failed:', e);
@@ -736,48 +722,21 @@ async function deleteRow(folder, btn) {
   const tr    = btn.closest('tr');
   const title = tr.querySelector('.book-title')?.textContent || folder;
 
-  if (!confirm(`Delete "${title}"?\n\nThis will:\n• Remove the row from this table\n• Delete the local folder  sites/${folder}/\n• You'll need to git push to remove it from Vercel`)) return;
+  if (!confirm(`Remove "${title}" from the library?\n\nThis removes the row from this page. The site will remain live on Vercel until you delete it from GitHub.`)) return;
 
-  /* 1 ── Remove from localStorage rows */
+  /* Remove from localStorage */
   let rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
   rows = rows.filter(r => r.folder !== folder);
   localStorage.setItem('mkRows', JSON.stringify(rows));
 
-  /* 2 ── Add to deleted-set (hides static HTML rows on next load) */
+  /* Add to deleted-set */
   let deleted = JSON.parse(localStorage.getItem('mkDeleted') || '[]');
   if (!deleted.includes(folder)) deleted.push(folder);
   localStorage.setItem('mkDeleted', JSON.stringify(deleted));
 
-  /* 3 ── Try to delete local folder via File System Access API */
-  let localDeleted = false;
-  if (_sitesDir) {
-    try {
-      await _sitesDir.removeEntry(folder, { recursive: true });
-      localDeleted = true;
-    } catch(e) { console.warn('Could not delete local folder:', e.message); }
-  } else {
-    try {
-      const saved = await _loadFolders();
-      if (saved.output) {
-        const perm = await saved.output.requestPermission({ mode: 'readwrite' });
-        if (perm === 'granted') {
-          _sitesDir = saved.output;
-          await _sitesDir.removeEntry(folder, { recursive: true });
-          localDeleted = true;
-        }
-      }
-    } catch(e) { console.warn('Could not get folder access:', e.message); }
-  }
-
-  /* 4 ── Remove row from DOM + renumber */
+  /* Remove row from DOM + renumber */
   tr.remove();
   renumberRows();
-
-  /* 5 ── Show git banner */
-  const localNote = localDeleted ? 'Local folder deleted. ' : 'Could not delete local folder (open the app and try again). ';
-  showBanner('🗑️', `"${title}" removed`,
-    localNote + 'Run in Terminal to remove from Vercel:',
-    `cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add -A\ngit commit -m "Remove ${folder}"\ngit push`);
 }
 
 /* ── GITHUB AUTO-PUSH ── */
@@ -1031,45 +990,6 @@ function skipChecklist() {
 function cancelChecklist() {
   document.getElementById('checklistModal').classList.remove('open');
   if (_checklistResolve) { _checklistResolve(false); _checklistResolve = null; }
-}
-
-/* Delete all local site folders manually */
-async function deleteLocalFiles() {
-  if (!confirm('Delete all local site folders?\n\nOnly do this after confirming your sites are live on Vercel.')) return;
-
-  const saved = await _loadFolders();
-  if (!saved.output) {
-    alert('No output folder found. Select your sites folder first by running Create Sample Sites.');
-    return;
-  }
-
-  const perm = await saved.output.requestPermission({ mode: 'readwrite' });
-  if (perm !== 'granted') {
-    alert('Permission denied — could not access the local sites folder.');
-    return;
-  }
-
-  let deleted = 0, failed = 0;
-  showProgress('🗑 Deleting local site folders…');
-
-  for await (const [name, handle] of saved.output.entries()) {
-    if (handle.kind === 'directory' && name.startsWith('book-')) {
-      try {
-        await saved.output.removeEntry(name, { recursive: true });
-        deleted++;
-      } catch(e) {
-        console.warn(`Could not delete ${name}:`, e.message);
-        failed++;
-      }
-    }
-  }
-
-  hideProgress();
-  if (failed > 0) {
-    alert(`Deleted ${deleted} folder${deleted !== 1 ? 's' : ''}. ${failed} could not be deleted.`);
-  } else {
-    alert(`✅ Deleted ${deleted} local site folder${deleted !== 1 ? 's' : ''}. Your GitHub/Vercel copies are untouched.`);
-  }
 }
 
 function toggleSettings() {
@@ -1335,7 +1255,7 @@ function genIndex(b) {
 </style></head><body>
 <div class="s01"><p>Pre-Order Today And Get A Signed Copy Of The Book!</p></div>
 <section class="s02"><div class="s02-inner">
-  <div class="s02-left"><img src="${coverSrc}" alt="${t}" class="cover"><img src="../../secure order.png" alt="Secure Order" style="margin-top:20px;max-width:420px;width:100%;" onerror="this.style.display='none'"></div>
+  <div class="s02-left"><img src="${coverSrc}" alt="${t}" class="cover"></div>
   <div class="s02-right">
     <h1 class="s02-title">${t}</h1><p class="s02-subtitle">${s}</p>
     <p class="s02-award">Award Winning Author</p><p class="s02-author">${a}</p>
@@ -1472,22 +1392,18 @@ ${TABLE_FOOT}</body></html>`;
 
 /* ── Sort existing rows on load (alphabetical) ── */
 window.addEventListener('DOMContentLoaded', () => {
-  /* Restore saved API key */
-  const savedKey = localStorage.getItem('anthropicApiKey');
+  /* Restore saved API key — support both old key name and new */
+  const savedKey = localStorage.getItem('anthropicKey') || localStorage.getItem('anthropicApiKey');
   if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
-  document.getElementById('apiKeyInput').addEventListener('input', () => {
-    const val = document.getElementById('apiKeyInput').value.trim();
-    if (val) localStorage.setItem('anthropicApiKey', val);
-    else     localStorage.removeItem('anthropicApiKey');
+  document.getElementById('apiKeyInput').addEventListener('input', e => {
+    localStorage.setItem('anthropicKey', e.target.value);
   });
 
   /* Restore saved GitHub token */
   const savedGH = localStorage.getItem('githubToken');
   if (savedGH) document.getElementById('ghTokenInput').value = savedGH;
-  document.getElementById('ghTokenInput').addEventListener('input', () => {
-    const val = document.getElementById('ghTokenInput').value.trim();
-    if (val) localStorage.setItem('githubToken', val);
-    else     localStorage.removeItem('githubToken');
+  document.getElementById('ghTokenInput').addEventListener('input', e => {
+    localStorage.setItem('githubToken', e.target.value);
   });
 
   /* Stamp existing rows with data-title for sorting */
