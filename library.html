@@ -35,6 +35,12 @@ td.link-cell a:hover { background: #444; }
 
 /* ── CREATE BUTTON ── */
 .toolbar { max-width: 1000px; margin: 32px auto 18px; padding: 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+/* gear icon button */
+.btn-settings { background: none; border: none; cursor: pointer; padding: 6px; color: #bbb; line-height: 0; transition: color .2s; }
+.btn-settings:hover { color: #555; }
+/* settings tray — hidden by default */
+.settings-tray { display: none; max-width: 1000px; margin: -10px auto 14px; padding: 0 24px; justify-content: flex-end; align-items: center; gap: 16px; flex-wrap: wrap; }
+.settings-tray.open { display: flex; }
 .api-key-wrap { display: flex; align-items: center; gap: 8px; }
 .api-key-wrap label { font-family: 'Raleway', sans-serif; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
 .api-key-wrap input {
@@ -141,6 +147,19 @@ td.link-cell a:hover { background: #444; }
 
 <!-- Toolbar -->
 <div class="toolbar">
+  <button class="btn-settings" onclick="toggleSettings()" title="API Keys">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  </button>
+  <button class="btn-create" onclick="createSampleSites()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Create Sample Sites
+  </button>
+</div>
+
+<!-- Hidden settings tray — toggled by gear icon -->
+<div class="settings-tray" id="settingsTray">
   <div class="api-key-wrap">
     <label for="apiKeyInput">Anthropic Key</label>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
@@ -149,10 +168,6 @@ td.link-cell a:hover { background: #444; }
     <label for="ghTokenInput">GitHub Token</label>
     <input type="password" id="ghTokenInput" placeholder="ghp_…" autocomplete="off" title="GitHub Personal Access Token with repo scope — enables auto-deploy to Vercel">
   </div>
-  <button class="btn-create" onclick="createSampleSites()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Create Sample Sites
-  </button>
 </div>
 
 <!-- Git action banner (shown after generate or delete) -->
@@ -715,6 +730,11 @@ async function pushFolderToGitHub(folderName, files, token) {
 }
 
 /* ── PROGRESS ── */
+function toggleSettings() {
+  const tray = document.getElementById('settingsTray');
+  tray.classList.toggle('open');
+}
+
 function showProgress(msg) {
   document.getElementById('progressMsg').textContent = msg;
   document.getElementById('progressBar').style.display = 'block';
