@@ -376,9 +376,9 @@ async function createSampleSites() {
     let title = '', author = '', subtitle = '';
     try {
       const extracted = await extractBookText(smallDataUrl, apiKey);
-      title    = (extracted.title    || '').trim();
-      author   = (extracted.author   || '').trim();
-      subtitle = (extracted.subtitle || '').trim();
+      title    = toTitleCase((extracted.title    || '').trim());
+      author   = toTitleCase((extracted.author   || '').trim());
+      subtitle = toTitleCase((extracted.subtitle || '').trim());
     } catch(err) {
       showProgress(`❌ ERROR on cover ${i + 1}: ${err.message}`);
       await new Promise(r => setTimeout(r, 4000));
@@ -426,14 +426,14 @@ async function confirmBook() {
   document.getElementById('bookModal').style.display = 'none';
   showProgress(`Creating "${item.title}"…`);
 
+  /* Pre-compute folder name so addRow can always run */
+  const slug       = slugify(item.title);
+  const num        = String(document.querySelectorAll('#bookTableBody tr').length + 1).padStart(2,'0');
+  const folderName = `book-${num}-${slug}`;
+
   try {
     /* Extract colours */
     const { accent, dark, neutral } = await extractColors(item.dataUrl);
-
-    /* Folder name */
-    const slug = slugify(item.title);
-    const num  = String(document.querySelectorAll('#bookTableBody tr').length + 1).padStart(2,'0');
-    const folderName = `book-${num}-${slug}`;
 
     /* Create directory inside the chosen sites folder */
     const bookDir = await _sitesDir.getDirectoryHandle(folderName, { create: true });
@@ -460,9 +460,6 @@ async function confirmBook() {
       await w.write(html); await w.close();
     }
 
-    /* Add row */
-    addRow(folderName, item.title, item.subtitle, item.author);
-
     /* Move source cover → _Completed/Title - Author.png */
     try {
       const completedDir = await _sourceDir.getDirectoryHandle('_Completed', { create: true });
@@ -481,19 +478,25 @@ async function confirmBook() {
     alert(`Failed to create "${item.title}":\n${err.message}`);
   }
 
+  /* Always add row + sort, even if file writing failed */
+  addRow(folderName, item.title, item.subtitle, item.author, item.dataUrl);
+  sortTableAlpha();
+  renumberRows();
+
   hideProgress();
   _qi++;
   showNextModal();
 }
 
 /* ── TABLE HELPERS ── */
-function addRow(folder, title, subtitle, author) {
+function addRow(folder, title, subtitle, author, coverDataUrl) {
   const tbody = document.getElementById('bookTableBody');
   const tr = document.createElement('tr');
   tr.dataset.title = title.toLowerCase();
+  const imgSrc = coverDataUrl || `sites/${folder}/cover.png`;
   tr.innerHTML = `
     <td class="num">—</td>
-    <td class="cover"><img src="sites/${folder}/cover.png" alt="${title}" onerror="this.style.opacity='.3'"></td>
+    <td class="cover"><img src="${imgSrc}" alt="${title}" onerror="this.style.opacity='.3'"></td>
     <td class="author">${author}</td>
     <td class="title-cell">
       <div class="book-title">${title}</div>
@@ -659,6 +662,16 @@ function resizeDataUrl(dataUrl, maxWidth) {
       res(c.toDataURL('image/jpeg', 0.85));
     };
     img.src = dataUrl;
+  });
+}
+
+function toTitleCase(str) {
+  if (!str) return str;
+  const minor = new Set(['a','an','the','and','but','or','for','nor','on','at','to','by','in','of','up','as','is','it','its']);
+  return str.toLowerCase().replace(/[^\s-]+/g, (w, offset) => {
+    const clean = w.replace(/^[-]+|[-]+$/g,'');
+    if (offset > 0 && minor.has(clean)) return w;
+    return w.charAt(0).toUpperCase() + w.slice(1);
   });
 }
 
