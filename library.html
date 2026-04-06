@@ -503,17 +503,16 @@ async function confirmBook() {
       await w.write(html); await w.close();
     }
 
-    /* Move source cover → _Completed/Title - Author.png */
+    /* Move original 3D cover into the site folder (prevents re-generation & keeps it with the site) */
     try {
-      const completedDir = await _sourceDir.getDirectoryHandle('_Completed', { create: true });
-      const safeName     = `${item.title} - ${item.author}.png`.replace(/[/\\:*?"<>|]/g, '_');
-      const destFH = await completedDir.getFileHandle(safeName, { create: true });
-      const dw = await destFH.createWritable();
-      await dw.write(await dataUrlToPng(item.dataUrl));
-      await dw.close();
+      const ext    = item.originalName.split('.').pop().toLowerCase();
+      const origFH = await bookDir.getFileHandle(`3d-cover.${ext}`, { create: true });
+      const origW  = await origFH.createWritable();
+      await origW.write(await item.file.arrayBuffer());
+      await origW.close();
       await _sourceDir.removeEntry(item.originalName);
     } catch(e) {
-      console.warn('Could not move to _Completed:', e.message);
+      console.warn('Could not move original cover into site folder:', e.message);
     }
 
   } catch(err) {
@@ -598,13 +597,16 @@ async function deleteRow(folder, btn) {
       await _sitesDir.removeEntry(folder, { recursive: true });
       localDeleted = true;
     } catch(e) { console.warn('Could not delete local folder:', e.message); }
-  } else if (window._savedFolders?.output) {
+  } else {
     try {
-      const perm = await window._savedFolders.output.requestPermission({ mode: 'readwrite' });
-      if (perm === 'granted') {
-        _sitesDir = window._savedFolders.output;
-        await _sitesDir.removeEntry(folder, { recursive: true });
-        localDeleted = true;
+      const saved = await _loadFolders();
+      if (saved.output) {
+        const perm = await saved.output.requestPermission({ mode: 'readwrite' });
+        if (perm === 'granted') {
+          _sitesDir = saved.output;
+          await _sitesDir.removeEntry(folder, { recursive: true });
+          localDeleted = true;
+        }
       }
     } catch(e) { console.warn('Could not get folder access:', e.message); }
   }
