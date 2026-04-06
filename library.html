@@ -723,7 +723,20 @@ function loadPersistedRows() {
     Array.from(document.querySelectorAll('#bookTableBody tr td.link-cell a'))
       .map(a => a.getAttribute('href').replace('sites/','').replace('/index.html',''))
   );
-  const rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
+  let rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
+
+  /* Auto-migrate: JPEG thumbnails have no transparency support — black BG.
+     Strip them so the img falls back to cover.png (which has proper transparency). */
+  let migrated = false;
+  rows = rows.map(r => {
+    if (r.thumb && r.thumb.startsWith('data:image/jpeg')) {
+      migrated = true;
+      return { ...r, thumb: null };
+    }
+    return r;
+  });
+  if (migrated) localStorage.setItem('mkRows', JSON.stringify(rows));
+
   rows.forEach(r => {
     if (!existing.has(r.folder)) addRow(r.folder, r.title, r.subtitle, r.author, r.thumb);
   });
@@ -734,13 +747,14 @@ function makeThumbnail(dataUrl) {
     const img = new Image();
     img.onload = () => {
       const c = document.createElement('canvas');
-      /* Render at 2× display size (140px) so 70px CSS display is crisp/retina-sharp */
+      /* 2× display size so 70px CSS renders crisp/retina-sharp */
       c.width = 140; c.height = Math.round(img.height * 140 / img.width);
       const ctx = c.getContext('2d');
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
+      /* Leave background transparent — PNG preserves alpha so no black fill */
       ctx.drawImage(img, 0, 0, c.width, c.height);
-      res(c.toDataURL('image/jpeg', 0.92));
+      res(c.toDataURL('image/png'));   /* PNG = keeps transparency, no black BG */
     };
     img.src = dataUrl;
   });
