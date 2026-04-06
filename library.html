@@ -22,7 +22,8 @@ tbody tr:last-child { border-bottom: none; }
 tbody tr:hover { background: #fafafa; }
 td { padding: 18px 20px; vertical-align: middle; }
 td.num { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 700; color: #cccccc; width: 52px; text-align: center; }
-td.cover img { width: 70px; height: auto; display: block; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.20)); }
+td.cover { width: 90px; }
+td.cover img { width: 70px; height: auto; display: block; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.20)); image-rendering: -webkit-optimize-contrast; }
 td.author { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
 td.title-cell .book-title { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
 td.title-cell .book-sub { font-size: 13px; color: #777; line-height: 1.5; }
@@ -105,6 +106,27 @@ td.link-cell a:hover { background: #444; }
 .modal-btns .btn-skip:hover { background: #e0e0e0; }
 .modal-btns .btn-confirm { background: #1a1a1a; color: #fff; }
 .modal-btns .btn-confirm:hover { background: #3a3a3a; }
+
+/* ── DEPLOY NOTICE BANNER ── */
+#deployNotice {
+  display: none;
+  max-width: 1000px; margin: 0 auto 18px; padding: 0 24px;
+}
+.deploy-box {
+  background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px;
+  padding: 16px 20px; display: flex; align-items: flex-start; gap: 14px;
+}
+.deploy-icon { font-size: 22px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+.deploy-text { flex: 1; }
+.deploy-text strong { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; color: #15803d; display: block; margin-bottom: 6px; }
+.deploy-text p { font-size: 13px; color: #555; line-height: 1.5; margin-bottom: 8px; }
+.deploy-cmd {
+  font-family: 'Courier New', monospace; font-size: 12px;
+  background: #1a1a1a; color: #a3e635; padding: 10px 14px; border-radius: 6px;
+  display: block; white-space: pre; overflow-x: auto; user-select: all;
+}
+.deploy-close { background: none; border: none; cursor: pointer; color: #999; font-size: 18px; line-height: 1; flex-shrink: 0; padding: 2px; }
+.deploy-close:hover { color: #333; }
 </style>
 </head>
 <body>
@@ -124,6 +146,22 @@ td.link-cell a:hover { background: #444; }
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Create Sample Sites
   </button>
+</div>
+
+<!-- Deploy notice (shown after generation completes) -->
+<div id="deployNotice">
+  <div class="deploy-box">
+    <div class="deploy-icon">🚀</div>
+    <div class="deploy-text">
+      <strong>Sites created! Push to GitHub to make them live on Vercel</strong>
+      <p>The HTML files were saved to your local <code>sites/</code> folder. Run these commands in Terminal to deploy to Vercel:</p>
+      <code class="deploy-cmd">cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\ Drive/___Claude\ folder/mediakitsamplesites
+git add sites/
+git commit -m "Add generated sample sites"
+git push</code>
+    </div>
+    <button class="deploy-close" onclick="document.getElementById('deployNotice').style.display='none'" title="Dismiss">✕</button>
+  </div>
 </div>
 
 <!-- Progress indicator -->
@@ -399,6 +437,9 @@ function showNextModal() {
   if (_qi >= _queue.length) {
     sortTableAlpha();
     renumberRows();
+    if (_queue.length > 0) {
+      document.getElementById('deployNotice').style.display = 'block';
+    }
     return;
   }
   const item = _queue[_qi];
@@ -693,9 +734,13 @@ function makeThumbnail(dataUrl) {
     const img = new Image();
     img.onload = () => {
       const c = document.createElement('canvas');
-      c.width = 70; c.height = Math.round(img.height * 70 / img.width);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      res(c.toDataURL('image/jpeg', 0.75));
+      /* Render at 2× display size (140px) so 70px CSS display is crisp/retina-sharp */
+      c.width = 140; c.height = Math.round(img.height * 140 / img.width);
+      const ctx = c.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/jpeg', 0.92));
     };
     img.src = dataUrl;
   });
