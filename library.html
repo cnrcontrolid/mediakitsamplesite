@@ -641,20 +641,32 @@ async function confirmBook() {
         const filesToPush = { ...pages, 'cover.png': pngBlob };
         filesToPush[`3d-cover.${origExt}`] = new Blob([origArrayBuffer]);
         await pushFolderToGitHub(folderName, filesToPush, ghToken);
-        showProgress(`✅ "${item.title}" pushed to GitHub — Vercel deploying…`);
-        await new Promise(r => setTimeout(r, 1500));
 
-        /* Delete local folder now that it's safely on GitHub */
-        try {
-          const saved = await _loadFolders();
-          if (saved.output) {
-            const perm = await saved.output.requestPermission({ mode: 'readwrite' });
-            if (perm === 'granted') {
-              await saved.output.removeEntry(folderName, { recursive: true });
+        /* Verify files actually landed in GitHub before deleting local copies */
+        showProgress(`🔍 Verifying files in GitHub…`);
+        await new Promise(r => setTimeout(r, 800));
+        const missingFiles = await verifyGitHubDeploy(folderName, ghToken);
+
+        if (missingFiles.length > 0) {
+          /* Push claimed success but files aren't there — keep local copy, warn loudly */
+          showProgress(`❌ GitHub verification FAILED — ${missingFiles.join(', ')} not found in repo. Local files kept. Check your GitHub token permissions and try again.`);
+          await new Promise(r => setTimeout(r, 6000));
+        } else {
+          showProgress(`✅ "${item.title}" verified in GitHub — Vercel deploying…`);
+          await new Promise(r => setTimeout(r, 1500));
+
+          /* Only delete local folder once we've confirmed files are in GitHub */
+          try {
+            const saved = await _loadFolders();
+            if (saved.output) {
+              const perm = await saved.output.requestPermission({ mode: 'readwrite' });
+              if (perm === 'granted') {
+                await saved.output.removeEntry(folderName, { recursive: true });
+              }
             }
+          } catch(delErr) {
+            console.warn('Could not delete local folder after push:', delErr.message);
           }
-        } catch(delErr) {
-          console.warn('Could not delete local folder after push:', delErr.message);
         }
       } catch(e) {
         console.error('GitHub push failed:', e);
@@ -805,6 +817,21 @@ async function _ghPutFile(path, content /* base64 string */, token, sha) {
   if (!r.ok) { const e = await r.json(); throw new Error(e.message || r.status); }
 }
 
+/* Verify that key files actually landed in GitHub after push */
+async function verifyGitHubDeploy(folderName, token) {
+  const keyFiles = ['index.html', 'cover.png', 'order.html'];
+  const missing  = [];
+  for (const file of keyFiles) {
+    const path = `sites/${folderName}/${file}`;
+    const r = await fetch(
+      `https://api.github.com/repos/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`,
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (!r.ok) missing.push(file);
+  }
+  return missing;  /* empty = all good */
+}
+
 async function pushFolderToGitHub(folderName, files, token) {
   /* files: { 'index.html': stringOrBlob, 'cover.png': Blob, ... } */
   const entries = Object.entries(files);
@@ -909,6 +936,9 @@ async function runChecklist(title, author, subtitle, folderName, pages, pngBlob)
   check('Title appears in index.html content',  indexHtml.includes(title),                 false, title ? `Looking for: "${title.slice(0,40)}"` : 'No title to check');
   check('Author appears in index.html content', indexHtml.includes(author),                false, author ? `Looking for: "${author.slice(0,40)}"` : 'No author to check');
 
+  /* ── CATEGORY 5: Post-push (always warn — reminder only, verified after push) ── */
+  check('GitHub file verification will run after push', true, false, 'index.html, cover.png & order.html will be confirmed in repo before local files are deleted');
+
   return results;
 }
 
@@ -921,10 +951,11 @@ async function showChecklist(title, author, subtitle, folderName, pages, pngBlob
 
   /* Group by category */
   const categories = [
-    { label: 'Metadata',  checks: results.slice(0, 4) },
-    { label: 'Files',     checks: results.slice(4, 7) },
-    { label: 'Image',     checks: results.slice(7, 10) },
-    { label: 'Links',     checks: results.slice(10) }
+    { label: 'Metadata',        checks: results.slice(0, 4) },
+    { label: 'Files',           checks: results.slice(4, 7) },
+    { label: 'Image',           checks: results.slice(7, 10) },
+    { label: 'Links',           checks: results.slice(10, 14) },
+    { label: 'Post-Push',       checks: results.slice(14) }
   ];
 
   /* Render body */
