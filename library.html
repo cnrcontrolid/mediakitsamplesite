@@ -145,6 +145,10 @@ td.link-cell a:hover { background: #444; }
     <label for="apiKeyInput">Anthropic Key</label>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
   </div>
+  <div class="api-key-wrap">
+    <label for="ghTokenInput">GitHub Token</label>
+    <input type="password" id="ghTokenInput" placeholder="ghp_…" autocomplete="off" title="GitHub Personal Access Token with repo scope — enables auto-deploy to Vercel">
+  </div>
   <button class="btn-create" onclick="createSampleSites()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Create Sample Sites
@@ -438,9 +442,17 @@ function showNextModal() {
     sortTableAlpha();
     renumberRows();
     if (_queue.length > 0) {
-      showBanner('🚀', 'Sites created! Push to GitHub to go live on Vercel',
-        'Files saved to your local sites/ folder. Run in Terminal:',
-        'cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add sites/\ngit commit -m "Add generated sample sites"\ngit push');
+      const ghToken = localStorage.getItem('githubToken');
+      if (ghToken) {
+        showBanner('✅', 'All sites pushed to GitHub!',
+          'Vercel is deploying now. Links will be live in ~60 seconds.', '');
+        document.getElementById('deployCmd').style.display = 'none';
+      } else {
+        document.getElementById('deployCmd').style.display = '';
+        showBanner('🚀', 'Sites created! Push to GitHub to go live on Vercel',
+          'Files saved to your local sites/ folder. Run in Terminal:',
+          'cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add sites/\ngit commit -m "Add generated sample sites"\ngit push');
+      }
     }
     return;
   }
@@ -504,15 +516,32 @@ async function confirmBook() {
     }
 
     /* Move original 3D cover into the site folder (prevents re-generation & keeps it with the site) */
+    const origExt = item.originalName.split('.').pop().toLowerCase();
+    const origArrayBuffer = await item.file.arrayBuffer();
     try {
-      const ext    = item.originalName.split('.').pop().toLowerCase();
-      const origFH = await bookDir.getFileHandle(`3d-cover.${ext}`, { create: true });
+      const origFH = await bookDir.getFileHandle(`3d-cover.${origExt}`, { create: true });
       const origW  = await origFH.createWritable();
-      await origW.write(await item.file.arrayBuffer());
+      await origW.write(origArrayBuffer);
       await origW.close();
       await _sourceDir.removeEntry(item.originalName);
     } catch(e) {
       console.warn('Could not move original cover into site folder:', e.message);
+    }
+
+    /* Auto-push to GitHub → triggers Vercel deploy automatically */
+    const ghToken = localStorage.getItem('githubToken');
+    if (ghToken) {
+      try {
+        const filesToPush = { ...pages, 'cover.png': pngBlob };
+        filesToPush[`3d-cover.${origExt}`] = new Blob([origArrayBuffer]);
+        await pushFolderToGitHub(folderName, filesToPush, ghToken);
+        showProgress(`✅ "${item.title}" pushed to GitHub — Vercel deploying…`);
+        await new Promise(r => setTimeout(r, 1500));
+      } catch(e) {
+        console.error('GitHub push failed:', e);
+        showProgress(`⚠️ GitHub push failed: ${e.message}`);
+        await new Promise(r => setTimeout(r, 3000));
+      }
     }
 
   } catch(err) {
@@ -620,6 +649,56 @@ async function deleteRow(folder, btn) {
   showBanner('🗑️', `"${title}" removed`,
     localNote + 'Run in Terminal to remove from Vercel:',
     `cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add -A\ngit commit -m "Remove ${folder}"\ngit push`);
+}
+
+/* ── GITHUB AUTO-PUSH ── */
+const GH_REPO  = 'cnrcontrolid/mediakitsamplesite';
+const GH_BRANCH = 'main';
+
+async function _blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(blob instanceof Blob ? blob : new Blob([blob]));
+  });
+}
+
+async function _ghGetSha(path, token) {
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`,
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (r.ok) { const j = await r.json(); return j.sha; }
+  } catch(e) {}
+  return null;
+}
+
+async function _ghPutFile(path, content /* base64 string */, token, sha) {
+  const body = { message: `Auto-deploy: ${path}`, content, branch: GH_BRANCH };
+  if (sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${path}`, {
+    method: 'PUT',
+    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(e.message || r.status); }
+}
+
+async function pushFolderToGitHub(folderName, files, token) {
+  /* files: { 'index.html': stringOrBlob, 'cover.png': Blob, ... } */
+  const entries = Object.entries(files);
+  for (let i = 0; i < entries.length; i++) {
+    const [name, content] = entries[i];
+    const path = `sites/${folderName}/${name}`;
+    showProgress(`GitHub ${i + 1}/${entries.length}: uploading ${name}…`);
+    const b64 = typeof content === 'string'
+      ? btoa(unescape(encodeURIComponent(content)))
+      : await _blobToBase64(content);
+    const sha = await _ghGetSha(path, token);
+    await _ghPutFile(path, b64, token, sha);
+  }
 }
 
 /* ── PROGRESS ── */
@@ -1007,12 +1086,19 @@ window.addEventListener('DOMContentLoaded', () => {
   /* Restore saved API key */
   const savedKey = localStorage.getItem('anthropicApiKey');
   if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
-
-  /* Save API key to localStorage whenever it changes */
   document.getElementById('apiKeyInput').addEventListener('input', () => {
     const val = document.getElementById('apiKeyInput').value.trim();
     if (val) localStorage.setItem('anthropicApiKey', val);
     else     localStorage.removeItem('anthropicApiKey');
+  });
+
+  /* Restore saved GitHub token */
+  const savedGH = localStorage.getItem('githubToken');
+  if (savedGH) document.getElementById('ghTokenInput').value = savedGH;
+  document.getElementById('ghTokenInput').addEventListener('input', () => {
+    const val = document.getElementById('ghTokenInput').value.trim();
+    if (val) localStorage.setItem('githubToken', val);
+    else     localStorage.removeItem('githubToken');
   });
 
   /* Stamp existing rows with data-title for sorting */
