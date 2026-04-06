@@ -413,7 +413,7 @@ async function createSampleSites() {
     const processedDataUrl = await processBookCover(dataUrl);
 
     showProgress(`Cover ${i + 1} of ${imageHandles.length}: reading with Claude Vision…`);
-    const smallDataUrl = await resizeDataUrl(processedDataUrl, 800);
+    const smallDataUrl = await resizeDataUrl(dataUrl, 800);  /* use original for sharper text */
 
     let title = '', author = '', subtitle = '';
     try {
@@ -820,7 +820,10 @@ function processBookCover(dataUrl) {
 
       const out = document.createElement('canvas');
       out.width = 750; out.height = 1000;
-      out.getContext('2d').drawImage(src, minX, minY, cropW, cropH, ox, oy, sw, sh);
+      const outCtx = out.getContext('2d');
+      outCtx.imageSmoothingEnabled = true;
+      outCtx.imageSmoothingQuality = 'high';
+      outCtx.drawImage(src, minX, minY, cropW, cropH, ox, oy, sw, sh);
 
       out.toBlob(blob => {
         const r = new FileReader();
