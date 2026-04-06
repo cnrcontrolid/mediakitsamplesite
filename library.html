@@ -793,26 +793,73 @@ async function _blobToBase64(blob) {
   });
 }
 
-async function _ghGetSha(path, token) {
-  try {
-    const r = await fetch(
-      `https://api.github.com/repos/${GH_REPO}/contents/${path}?ref=${GH_BRANCH}`,
-      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } }
-    );
-    if (r.ok) { const j = await r.json(); return j.sha; }
-  } catch(e) {}
-  return null;
-}
+/* ── GitHub Trees API: push all files in ONE commit → one Vercel deployment ── */
+async function pushFolderToGitHub(folderName, files, token) {
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+  const api = `https://api.github.com/repos/${GH_REPO}`;
 
-async function _ghPutFile(path, content /* base64 string */, token, sha) {
-  const body = { message: `Auto-deploy: ${path}`, content, branch: GH_BRANCH };
-  if (sha) body.sha = sha;
-  const r = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/${path}`, {
-    method: 'PUT',
-    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+  /* 1. Get current branch HEAD SHA */
+  showProgress(`GitHub: getting branch ref…`);
+  const refR = await fetch(`${api}/git/ref/heads/${GH_BRANCH}`, { headers });
+  if (!refR.ok) throw new Error(`Could not get branch ref: ${refR.status}`);
+  const { object: { sha: headSha } } = await refR.json();
+
+  /* 2. Get current tree SHA */
+  const commitR = await fetch(`${api}/git/commits/${headSha}`, { headers });
+  if (!commitR.ok) throw new Error(`Could not get commit: ${commitR.status}`);
+  const { tree: { sha: baseTreeSha } } = await commitR.json();
+
+  /* 3. Create a blob for each file */
+  const entries = Object.entries(files);
+  const treeItems = [];
+  for (let i = 0; i < entries.length; i++) {
+    const [name, content] = entries[i];
+    showProgress(`GitHub ${i + 1}/${entries.length}: uploading ${name}…`);
+    const b64 = typeof content === 'string'
+      ? btoa(unescape(encodeURIComponent(content)))
+      : await _blobToBase64(content);
+    const blobR = await fetch(`${api}/git/blobs`, {
+      method: 'POST', headers,
+      body: JSON.stringify({ content: b64, encoding: 'base64' })
+    });
+    if (!blobR.ok) { const e = await blobR.json(); throw new Error(`Blob failed (${name}): ${e.message}`); }
+    const { sha: blobSha } = await blobR.json();
+    treeItems.push({ path: `sites/${folderName}/${name}`, mode: '100644', type: 'blob', sha: blobSha });
+  }
+
+  /* 4. Create new tree */
+  showProgress(`GitHub: creating tree…`);
+  const treeR = await fetch(`${api}/git/trees`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ base_tree: baseTreeSha, tree: treeItems })
   });
-  if (!r.ok) { const e = await r.json(); throw new Error(e.message || r.status); }
+  if (!treeR.ok) { const e = await treeR.json(); throw new Error(`Tree failed: ${e.message}`); }
+  const { sha: newTreeSha } = await treeR.json();
+
+  /* 5. Create single commit */
+  showProgress(`GitHub: creating commit…`);
+  const commitBodyR = await fetch(`${api}/git/commits`, {
+    method: 'POST', headers,
+    body: JSON.stringify({
+      message: `Add site: ${folderName}`,
+      tree: newTreeSha,
+      parents: [headSha]
+    })
+  });
+  if (!commitBodyR.ok) { const e = await commitBodyR.json(); throw new Error(`Commit failed: ${e.message}`); }
+  const { sha: newCommitSha } = await commitBodyR.json();
+
+  /* 6. Update branch ref */
+  showProgress(`GitHub: updating branch…`);
+  const updateR = await fetch(`${api}/git/refs/heads/${GH_BRANCH}`, {
+    method: 'PATCH', headers,
+    body: JSON.stringify({ sha: newCommitSha, force: false })
+  });
+  if (!updateR.ok) { const e = await updateR.json(); throw new Error(`Ref update failed: ${e.message}`); }
 }
 
 /* Verify that key files actually landed in GitHub after push */
@@ -827,22 +874,7 @@ async function verifyGitHubDeploy(folderName, token) {
     );
     if (!r.ok) missing.push(file);
   }
-  return missing;  /* empty = all good */
-}
-
-async function pushFolderToGitHub(folderName, files, token) {
-  /* files: { 'index.html': stringOrBlob, 'cover.png': Blob, ... } */
-  const entries = Object.entries(files);
-  for (let i = 0; i < entries.length; i++) {
-    const [name, content] = entries[i];
-    const path = `sites/${folderName}/${name}`;
-    showProgress(`GitHub ${i + 1}/${entries.length}: uploading ${name}…`);
-    const b64 = typeof content === 'string'
-      ? btoa(unescape(encodeURIComponent(content)))
-      : await _blobToBase64(content);
-    const sha = await _ghGetSha(path, token);
-    await _ghPutFile(path, b64, token, sha);
-  }
+  return missing;
 }
 
 /* ── PROGRESS ── */
