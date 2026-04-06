@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Kit Sample Sites — Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Raleway:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Raleway', sans-serif; background: #f4f4f4; color: #1a1a1a; }
+header { background: #0d0d0d; padding: 32px 40px; text-align: center; }
+header h1 { font-family: 'Oswald', sans-serif; color: #ffffff; font-size: 32px; letter-spacing: 2px; text-transform: uppercase; }
+header p { color: #888; font-size: 15px; margin-top: 8px; }
+.wrap { max-width: 1000px; margin: 48px auto; padding: 0 24px 60px; }
+table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.10); }
+thead tr { background: #1a1a1a; }
+thead th { font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 1.5px; text-transform: uppercase; color: #ffffff; padding: 16px 20px; text-align: left; }
+tbody tr { border-bottom: 1px solid #ebebeb; transition: background .15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #fafafa; }
+td { padding: 18px 20px; vertical-align: middle; }
+td.num { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 700; color: #cccccc; width: 52px; text-align: center; }
+td.cover img { width: 70px; height: auto; display: block; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.20)); }
+td.author { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
+td.title-cell .book-title { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+td.title-cell .book-sub { font-size: 13px; color: #777; line-height: 1.5; }
+td.link-cell a { display: inline-block; background: #1a1a1a; color: #fff; font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; padding: 10px 20px; border-radius: 6px; text-decoration: none; transition: background .2s; white-space: nowrap; }
+td.link-cell a:hover { background: #444; }
+
+/* ── CREATE BUTTON ── */
+.toolbar { max-width: 1000px; margin: 32px auto 18px; padding: 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.api-key-wrap { display: flex; align-items: center; gap: 8px; }
+.api-key-wrap label { font-family: 'Raleway', sans-serif; font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+.api-key-wrap input {
+  font-family: 'Raleway', sans-serif; font-size: 13px; color: #333;
+  padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 8px;
+  width: 260px; background: #fff; outline: none; transition: border-color .15s;
+}
+.api-key-wrap input:focus { border-color: #1a1a1a; }
+.api-key-wrap input::placeholder { color: #bbb; }
+.btn-create {
+  background: #1a1a1a; color: #fff;
+  font-family: 'Oswald', sans-serif; font-size: 15px; letter-spacing: 1px; text-transform: uppercase;
+  padding: 12px 28px; border: none; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; transition: background .2s; white-space: nowrap;
+}
+.btn-create:hover { background: #3a3a3a; }
+.btn-create svg { flex-shrink: 0; }
+
+/* ── PROGRESS BAR ── */
+#progressBar {
+  display: none; max-width: 1000px; margin: 0 auto 14px; padding: 0 24px;
+}
+#progressBar .pb-inner {
+  background: #fff; border-radius: 8px; padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  font-family: 'Raleway', sans-serif; font-size: 14px; color: #444;
+}
+.pb-spinner {
+  width: 20px; height: 20px; border: 3px solid #eee; border-top-color: #1a1a1a;
+  border-radius: 50%; animation: pbspin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes pbspin { to { transform: rotate(360deg); } }
+
+/* ── MODAL OVERLAY ── */
+#bookModal {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,.55); align-items: center; justify-content: center;
+}
+.modal-box {
+  background: #fff; border-radius: 14px; overflow: hidden;
+  display: flex; max-width: 780px; width: 92vw;
+  box-shadow: 0 24px 60px rgba(0,0,0,.35);
+  animation: modalPop .2s ease;
+}
+@keyframes modalPop { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+.modal-cover {
+  flex: 0 0 260px; background: #f4f4f4;
+  display: flex; align-items: center; justify-content: center; padding: 28px 20px;
+  border-right: 1px solid #eee;
+}
+.modal-cover img { max-width: 210px; max-height: 280px; object-fit: contain; filter: drop-shadow(0 6px 16px rgba(0,0,0,.2)); }
+.modal-form { flex: 1; padding: 32px 36px; }
+.modal-form h3 { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+.modal-form .mf-sub { font-family: 'Raleway', sans-serif; font-size: 13px; color: #aaa; margin-bottom: 22px; }
+.mf-field { margin-bottom: 14px; }
+.mf-field label { display: block; font-family: 'Raleway', sans-serif; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.mf-field input {
+  width: 100%; padding: 10px 14px;
+  font-family: 'Raleway', sans-serif; font-size: 14px; color: #222;
+  border: 1.5px solid #ddd; border-radius: 7px; background: #fafafa; outline: none;
+  transition: border-color .15s;
+}
+.mf-field input:focus { border-color: #1a1a1a; }
+.mf-counter { font-family: 'Raleway', sans-serif; font-size: 12px; color: #aaa; margin-bottom: 20px; }
+.modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+.modal-btns button {
+  font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: .8px; text-transform: uppercase;
+  padding: 10px 22px; border: none; border-radius: 7px; cursor: pointer; transition: background .15s;
+}
+.modal-btns .btn-skip { background: #f0f0f0; color: #666; }
+.modal-btns .btn-skip:hover { background: #e0e0e0; }
+.modal-btns .btn-confirm { background: #1a1a1a; color: #fff; }
+.modal-btns .btn-confirm:hover { background: #3a3a3a; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Media Kit Sample Sites</h1>
+    <p>Click any link below to preview the full sales funnel for that book</p>
+</header>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <div class="api-key-wrap">
+    <label for="apiKeyInput">Anthropic Key</label>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
+  </div>
+  <button class="btn-create" onclick="createSampleSites()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Create Sample Sites
+  </button>
+</div>
+
+<!-- Progress indicator -->
+<div id="progressBar">
+  <div class="pb-inner">
+    <div class="pb-spinner"></div>
+    <span id="progressMsg">Creating site…</span>
+  </div>
+</div>
+
+<!-- Book info modal -->
+<div id="bookModal">
+  <div class="modal-box">
+    <div class="modal-cover"><img id="modalCover" alt="Cover"></div>
+    <div class="modal-form">
+      <h3>Book Details</h3>
+      <p class="mf-sub" id="modalCounter">Book 1 of 1</p>
+      <div class="mf-field"><label>Title</label><input type="text" id="mTitle" placeholder="Book title"></div>
+      <div class="mf-field"><label>Subtitle</label><input type="text" id="mSubtitle" placeholder="Enter the subtitle…"></div>
+      <div class="mf-field"><label>Author</label><input type="text" id="mAuthor" placeholder="Author name"></div>
+      <div class="modal-btns">
+        <button class="btn-skip" onclick="skipBook()">Skip</button>
+        <button class="btn-confirm" onclick="confirmBook()">Create Site →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+    <table id="bookTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Cover</th>
+                <th>Author</th>
+                <th>Title &amp; Subtitle</th>
+                <th>Landing Page</th>
+            </tr>
+        </thead>
+        <tbody id="bookTableBody">
+            <tr>
+                <td class="num">1</td>
+                <td class="cover"><img src="sites/book-01-heartbeat/cover.png" alt="Heartbeat"></td>
+                <td class="author">Peter Wainberg</td>
+                <td class="title-cell">
+                    <div class="book-title">Heartbeat</div>
+                    <div class="book-sub">Awaken Your Love, Lose the Weight and Reclaim Your Freedom</div>
+                </td>
+                <td class="link-cell"><a href="sites/book-01-heartbeat/index.html">View Site →</a></td>
+            </tr>
+            <tr>
+                <td class="num">2</td>
+                <td class="cover"><img src="sites/book-02-procrastination/cover.png" alt="The Book on Procrastination"></td>
+                <td class="author">Keltie Harris</td>
+                <td class="title-cell">
+                    <div class="book-title">The Book on Procrastination</div>
+                    <div class="book-sub">Understand Resistance, Feel Your Fear and Take Action Anyway</div>
+                </td>
+                <td class="link-cell"><a href="sites/book-02-procrastination/index.html">View Site →</a></td>
+            </tr>
+            <tr>
+                <td class="num">3</td>
+                <td class="cover"><img src="sites/book-03-half-island-life/cover.png" alt="A Half Island Life"></td>
+                <td class="author">Thomas S. Shannon</td>
+                <td class="title-cell">
+                    <div class="book-title">A Half Island Life</div>
+                    <div class="book-sub">How to Learn Mandarin and Live in China</div>
+                </td>
+                <td class="link-cell"><a href="sites/book-03-half-island-life/index.html">View Site →</a></td>
+            </tr>
+            <tr>
+                <td class="num">4</td>
+                <td class="cover"><img src="sites/book-04-half-the-distance/cover.png" alt="Half the Distance, Twice the Triumph"></td>
+                <td class="author">Len Legotte</td>
+                <td class="title-cell">
+                    <div class="book-title">Half the Distance, Twice the Triumph</div>
+                    <div class="book-sub">Mindset, Training and Motivation for Your First Half Marathon</div>
+                </td>
+                <td class="link-cell"><a href="sites/book-04-half-the-distance/index.html">View Site →</a></td>
+            </tr>
+            <tr>
+                <td class="num">5</td>
+                <td class="cover"><img src="sites/book-05-dog-training/cover.png" alt="More Than Dog Training"></td>
+                <td class="author">Sarah Wilkinson</td>
+                <td class="title-cell">
+                    <div class="book-title">More Than Dog Training</div>
+                    <div class="book-sub">What Families and Their Canine Companions Really Need to Thrive Together</div>
+                </td>
+                <td class="link-cell"><a href="sites/book-05-dog-training/index.html">View Site →</a></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   CREATE SAMPLE SITES
+══════════════════════════════════════════════ */
+let _sitesDir  = null;
+let _sourceDir = null;
+let _queue     = [];
+let _qi        = 0;
+
+/* ── IndexedDB: persist folder handles across page loads ── */
+function _getDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('sampleSitesDB', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = rej;
+  });
+}
+async function _saveFolders(source, output) {
+  const db = await _getDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(source, 'source');
+    tx.objectStore('handles').put(output, 'output');
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+async function _loadFolders() {
+  try {
+    const db = await _getDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('handles', 'readonly');
+      const s  = tx.objectStore('handles').get('source');
+      const o  = tx.objectStore('handles').get('output');
+      tx.oncomplete = () => res({ source: s.result, output: o.result });
+      tx.onerror = rej;
+    });
+  } catch(e) { return { source: null, output: null }; }
+}
+
+/* ── Claude Vision: extract title / subtitle / author ── */
+async function extractBookText(dataUrl, apiKey) {
+  const base64    = dataUrl.split(',')[1];
+  const mediaType = dataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 256,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text',  text:
+            'This is a 3D book cover image. Read ALL text visible on the cover and extract: the main book title, the subtitle (if any), and the author name. ' +
+            'Return ONLY a valid JSON object: {"title":"...","subtitle":"...","author":"..."}. ' +
+            'If there is no subtitle use an empty string. No other text, just the JSON.'
+          }
+        ]
+      }]
+    })
+  });
+  if (!resp.ok) {
+    const errBody = await resp.text();
+    throw new Error(`API ${resp.status}: ${errBody.slice(0, 200)}`);
+  }
+  const data  = await resp.json();
+  const text  = data.content[0].text.trim();
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`Bad response: ${text.slice(0, 200)}`);
+  return JSON.parse(match[0]);
+}
+
+async function createSampleSites() {
+  if (!window.showDirectoryPicker) {
+    alert('This feature requires Chrome or Edge (File System Access API).');
+    return;
+  }
+
+  /* API key */
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) {
+    alert('Please enter your Anthropic API key in the field above.');
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+
+  /* ── Folder setup: restore saved handles, else pick ── */
+  let sourceDir, outputDir;
+  const saved = await _loadFolders();
+
+  /* Try to reuse saved source folder */
+  if (saved.source) {
+    try {
+      const perm = await saved.source.requestPermission({ mode: 'readwrite' });
+      if (perm === 'granted') sourceDir = saved.source;
+    } catch(e) {}
+  }
+  if (!sourceDir) {
+    try { sourceDir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+    catch(e) { return; }
+  }
+
+  /* Try to reuse saved output folder */
+  if (saved.output) {
+    try {
+      const perm = await saved.output.requestPermission({ mode: 'readwrite' });
+      if (perm === 'granted') outputDir = saved.output;
+    } catch(e) {}
+  }
+  if (!outputDir) {
+    try { outputDir = await window.showDirectoryPicker({ mode: 'readwrite' }); }
+    catch(e) { return; }
+  }
+
+  /* Persist for next time */
+  _sitesDir  = outputDir;
+  _sourceDir = sourceDir;
+  await _saveFolders(sourceDir, outputDir);
+
+  /* ── Scan all image files (skip subfolders) ── */
+  const imageHandles = [];
+  for await (const [name, handle] of sourceDir.entries()) {
+    if (handle.kind === 'directory') continue;
+    if (!/\.(jpg|jpeg|png)$/i.test(name)) continue;
+    imageHandles.push({ name, handle });
+  }
+  imageHandles.sort((a, b) => a.name.localeCompare(b.name));
+
+  if (imageHandles.length === 0) {
+    alert('No image files found in the selected folder.');
+    return;
+  }
+
+  /* ── Build queue: remove bg + Vision extraction ── */
+  _queue = [];
+  for (let i = 0; i < imageHandles.length; i++) {
+    const { name, handle } = imageHandles[i];
+
+    showProgress(`Cover ${i + 1} of ${imageHandles.length}: removing background…`);
+    const file    = await handle.getFile();
+    const dataUrl = await fileToDataUrl(file);
+
+    /* Remove background + crop/pad to 750×1000 */
+    const processedDataUrl = await processBookCover(dataUrl);
+
+    showProgress(`Cover ${i + 1} of ${imageHandles.length}: reading with Claude Vision…`);
+    const smallDataUrl = await resizeDataUrl(processedDataUrl, 800);
+
+    let title = '', author = '', subtitle = '';
+    try {
+      const extracted = await extractBookText(smallDataUrl, apiKey);
+      title    = (extracted.title    || '').trim();
+      author   = (extracted.author   || '').trim();
+      subtitle = (extracted.subtitle || '').trim();
+    } catch(err) {
+      showProgress(`❌ ERROR on cover ${i + 1}: ${err.message}`);
+      await new Promise(r => setTimeout(r, 4000));
+    }
+
+    _queue.push({ file, dataUrl: processedDataUrl, originalName: name, title, subtitle, author });
+
+    if (i < imageHandles.length - 1) await new Promise(r => setTimeout(r, 300));
+  }
+
+  hideProgress();
+  _qi = 0;
+  showNextModal();
+}
+
+/* ── MODAL: show next item in queue ── */
+function showNextModal() {
+  if (_qi >= _queue.length) {
+    sortTableAlpha();
+    renumberRows();
+    return;
+  }
+  const item = _queue[_qi];
+  document.getElementById('modalCover').src      = item.dataUrl;
+  document.getElementById('mTitle').value        = item.title;
+  document.getElementById('mSubtitle').value     = item.subtitle;
+  document.getElementById('mAuthor').value       = item.author;
+  document.getElementById('modalCounter').textContent =
+    `Book ${_qi + 1} of ${_queue.length}`;
+  document.getElementById('bookModal').style.display = 'flex';
+}
+
+function skipBook() {
+  document.getElementById('bookModal').style.display = 'none';
+  _qi++;
+  showNextModal();
+}
+
+async function confirmBook() {
+  const item = _queue[_qi];
+  item.title    = document.getElementById('mTitle').value.trim()    || item.title;
+  item.subtitle = document.getElementById('mSubtitle').value.trim() || '';
+  item.author   = document.getElementById('mAuthor').value.trim()   || item.author;
+
+  document.getElementById('bookModal').style.display = 'none';
+  showProgress(`Creating "${item.title}"…`);
+
+  try {
+    /* Extract colours */
+    const { accent, dark, neutral } = await extractColors(item.dataUrl);
+
+    /* Folder name */
+    const slug = slugify(item.title);
+    const num  = String(document.querySelectorAll('#bookTableBody tr').length + 1).padStart(2,'0');
+    const folderName = `book-${num}-${slug}`;
+
+    /* Create directory inside the chosen sites folder */
+    const bookDir = await _sitesDir.getDirectoryHandle(folderName, { create: true });
+
+    /* Write cover.png */
+    const pngBlob = await dataUrlToPng(item.dataUrl);
+    const coverFH = await bookDir.getFileHandle('cover.png', { create: true });
+    const cw = await coverFH.createWritable();
+    await cw.write(pngBlob); await cw.close();
+
+    /* Write 5 HTML pages */
+    const book = { title: item.title, subtitle: item.subtitle, author: item.author,
+                   bright: accent, dark, neutral };
+    const pages = {
+      'index.html':     genIndex(book),
+      'order.html':     genOrder(book),
+      'confirmed.html': genConfirmed(book),
+      'terms.html':     genTerms(book),
+      'privacy.html':   genPrivacy(book)
+    };
+    for (const [name, html] of Object.entries(pages)) {
+      const fh = await bookDir.getFileHandle(name, { create: true });
+      const w  = await fh.createWritable();
+      await w.write(html); await w.close();
+    }
+
+    /* Add row */
+    addRow(folderName, item.title, item.subtitle, item.author);
+
+    /* Move source cover → _Completed/Title - Author.png */
+    try {
+      const completedDir = await _sourceDir.getDirectoryHandle('_Completed', { create: true });
+      const safeName     = `${item.title} - ${item.author}.png`.replace(/[/\\:*?"<>|]/g, '_');
+      const destFH = await completedDir.getFileHandle(safeName, { create: true });
+      const dw = await destFH.createWritable();
+      await dw.write(await dataUrlToPng(item.dataUrl));
+      await dw.close();
+      await _sourceDir.removeEntry(item.originalName);
+    } catch(e) {
+      console.warn('Could not move to _Completed:', e.message);
+    }
+
+  } catch(err) {
+    console.error(err);
+    alert(`Failed to create "${item.title}":\n${err.message}`);
+  }
+
+  hideProgress();
+  _qi++;
+  showNextModal();
+}
+
+/* ── TABLE HELPERS ── */
+function addRow(folder, title, subtitle, author) {
+  const tbody = document.getElementById('bookTableBody');
+  const tr = document.createElement('tr');
+  tr.dataset.title = title.toLowerCase();
+  tr.innerHTML = `
+    <td class="num">—</td>
+    <td class="cover"><img src="sites/${folder}/cover.png" alt="${title}" onerror="this.style.opacity='.3'"></td>
+    <td class="author">${author}</td>
+    <td class="title-cell">
+      <div class="book-title">${title}</div>
+      <div class="book-sub">${subtitle}</div>
+    </td>
+    <td class="link-cell"><a href="sites/${folder}/index.html" target="_blank">View Site →</a></td>`;
+  tbody.appendChild(tr);
+}
+
+function sortTableAlpha() {
+  const tbody = document.getElementById('bookTableBody');
+  const rows  = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => (a.dataset.title || '').localeCompare(b.dataset.title || ''));
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+function renumberRows() {
+  document.querySelectorAll('#bookTableBody tr').forEach((tr, i) => {
+    tr.querySelector('.num').textContent = i + 1;
+  });
+}
+
+/* ── PROGRESS ── */
+function showProgress(msg) {
+  document.getElementById('progressMsg').textContent = msg;
+  document.getElementById('progressBar').style.display = 'block';
+}
+function hideProgress() {
+  document.getElementById('progressBar').style.display = 'none';
+}
+
+/* ── UTILS ── */
+function fileToDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function dataUrlToPng(dataUrl) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width; c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      c.toBlob(res, 'image/png');
+    };
+    img.src = dataUrl;
+  });
+}
+
+function extractColors(dataUrl) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 80; c.height = 80;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, 80, 80);
+      const d = ctx.getImageData(0, 0, 80, 80).data;
+      let maxSat = 0, minBright = 765;
+      let aR=232,aG=0,aB=61, dR=26,dG=3,dB=6;
+      for (let i = 0; i < d.length; i += 4) {
+        const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];
+        if (a < 128) continue;
+        const mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+        const sat = mx===0 ? 0 : (mx-mn)/mx;
+        const br  = r+g+b;
+        if (sat > maxSat && br > 80 && br < 600) { maxSat=sat; aR=r;aG=g;aB=b; }
+        if (br < minBright && br < 200)           { minBright=br; dR=r;dG=g;dB=b; }
+      }
+      const accent  = `rgb(${aR},${aG},${aB})`;
+      const dark    = `rgb(${dR},${dG},${dB})`;
+      const neutral = `rgb(${Math.round(255-(255-aR)*.06)},${Math.round(255-(255-aG)*.06)},${Math.round(255-(255-aB)*.06)})`;
+      res({ accent, dark, neutral });
+    };
+    img.src = dataUrl;
+  });
+}
+
+/* ── Remove background + crop/pad to 750×1000 ── */
+function processBookCover(dataUrl) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const W = img.width, H = img.height;
+      const src = document.createElement('canvas');
+      src.width = W; src.height = H;
+      const sctx = src.getContext('2d');
+      sctx.drawImage(img, 0, 0);
+      const id   = sctx.getImageData(0, 0, W, H);
+      const data = id.data;
+
+      /* Sample bg colour from top-left corner */
+      const bgR = data[0], bgG = data[1], bgB = data[2];
+      const tol = 40;
+
+      /* BFS flood-fill from all 4 corners to remove background */
+      const visited = new Uint8Array(W * H);
+      const queue   = [0, W - 1, (H - 1) * W, (H - 1) * W + W - 1];
+      let head = 0;
+      while (head < queue.length) {
+        const px = queue[head++];
+        if (visited[px]) continue;
+        visited[px] = 1;
+        const pi = px * 4;
+        if (Math.abs(data[pi]   - bgR) > tol ||
+            Math.abs(data[pi+1] - bgG) > tol ||
+            Math.abs(data[pi+2] - bgB) > tol) continue;
+        data[pi + 3] = 0;
+        const x = px % W, y = Math.floor(px / W);
+        if (x > 0)     queue.push(px - 1);
+        if (x < W - 1) queue.push(px + 1);
+        if (y > 0)     queue.push(px - W);
+        if (y < H - 1) queue.push(px + W);
+      }
+      sctx.putImageData(id, 0, 0);
+
+      /* Find bounding box of non-transparent pixels */
+      let minX = W, minY = H, maxX = 0, maxY = 0;
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (data[(y * W + x) * 4 + 3] > 10) {
+            if (x < minX) minX = x; if (x > maxX) maxX = x;
+            if (y < minY) minY = y; if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX === 0) { minX = 0; minY = 0; maxX = W - 1; maxY = H - 1; }
+
+      /* Scale to fit 750×1000, centre, render on transparent canvas */
+      const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
+      const scale  = Math.min(750 / cropW, 1000 / cropH);
+      const sw = Math.round(cropW * scale), sh = Math.round(cropH * scale);
+      const ox = Math.round((750 - sw) / 2),  oy = Math.round((1000 - sh) / 2);
+
+      const out = document.createElement('canvas');
+      out.width = 750; out.height = 1000;
+      out.getContext('2d').drawImage(src, minX, minY, cropW, cropH, ox, oy, sw, sh);
+
+      out.toBlob(blob => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.readAsDataURL(blob);
+      }, 'image/png');
+    };
+    img.src = dataUrl;
+  });
+}
+
+function resizeDataUrl(dataUrl, maxWidth) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+      const c = document.createElement('canvas');
+      c.width  = Math.round(img.width  * scale);
+      c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = dataUrl;
+  });
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+}
+
+/* ══════════════════════════════════════════════
+   HTML PAGE GENERATORS  (same template as book sites)
+══════════════════════════════════════════════ */
+const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Raleway:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">`;
+
+const TABLE_FOOT = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;border-top:1px solid #ddd;"><tr><td style="padding:30px 20px;text-align:center;font-family:'Raleway',sans-serif;font-size:12px;color:#888;line-height:1.9;"><p>This is not part of Facebook website or Meta, Inc. This site is not endorsed by Facebook or Meta, Inc in anyway.</p><p>Results may not be typical or expected for every person. No results are guaranteed with the help of this book and systems described in the book. Individual results will vary according to effort, determination hard work and available budget.</p><p style="margin-top:6px;">Designed and Developed by <strong style="color:#333;">The Raymond Aaron Group</strong></p><p style="margin-top:10px;"><a href="privacy.html" style="color:#0174C7;">Privacy Policy</a> | <a href="terms.html" style="color:#0174C7;">Terms &amp; Conditions</a> | <a href="mailto:contact@example.com" style="color:#0174C7;">Contact Author</a></p></td></tr></table>`;
+
+function genIndex(b) {
+  const {title:t,subtitle:s,author:a,bright,dark,neutral} = b;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Pre-Order</title>${FONTS}<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:'Raleway',sans-serif;color:#333;background:#fff}img{max-width:100%;height:auto;display:block}a{text-decoration:none;color:inherit}
+.wrap{max-width:900px;margin:0 auto;padding:0 24px}
+.btn-cta{display:block;background:#0174C7;color:#fff;font-family:'Oswald',sans-serif;font-size:22px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;text-align:center;padding:17px 24px 14px;border-radius:4px;border:none;cursor:pointer;line-height:1.2;transition:background .2s}.btn-cta:hover{background:#015fa8}.btn-cta small{display:block;font-family:'Raleway',sans-serif;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:3px;opacity:.85}
+.s01{background:${bright};padding:12px 24px;text-align:center}.s01 p{font-family:'Raleway',sans-serif;font-size:32px;line-height:38px;font-weight:700;color:#fff}
+.s02{background:#fff;padding:60px 24px}.s02-inner{max-width:900px;margin:0 auto;display:flex;gap:60px;align-items:center}.s02-left{flex:0 0 auto}.s02-left img.cover{width:420px;max-width:420px;max-height:460px;object-fit:contain}.s02-right{flex:1;padding-top:8px}
+.s02-title{font-family:'Oswald',sans-serif;font-size:50px;line-height:55px;font-weight:700;color:${bright};text-transform:uppercase;margin-bottom:12px}.s02-subtitle{font-family:'Raleway',sans-serif;font-size:36px;line-height:40px;color:#333;font-weight:400;margin-bottom:14px}.s02-award{font-family:'Raleway',sans-serif;font-size:13px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.s02-author{font-family:'Raleway',sans-serif;font-size:32px;line-height:38px;font-weight:700;color:${dark};margin-bottom:28px}.s02-note{font-family:'Raleway',sans-serif;font-size:14px;color:#666;margin-top:12px}
+.s03{background:${neutral};padding:60px 24px}.s03-inner{max-width:900px;margin:0 auto;display:flex;gap:48px;align-items:center}.s03-left{flex:0 0 420px}.s03-left img{width:420px;filter:drop-shadow(0 8px 20px rgba(0,0,0,.2))}.s03-right{flex:1}
+.s03-headline{font-family:'Oswald',sans-serif;font-size:65px;line-height:71px;font-weight:700;color:${bright};text-transform:uppercase;margin-bottom:8px}.s03-subheadline{font-family:'Oswald',sans-serif;font-size:40px;line-height:45px;font-weight:400;color:${dark};margin-bottom:6px}.s03-credit{font-family:'Raleway',sans-serif;font-size:14px;color:#888;font-style:italic;margin-bottom:20px}.s03-body{font-family:'Raleway',sans-serif;font-size:18px;line-height:23px;color:#444;margin-bottom:14px}
+.s04{background:${dark};padding:50px 24px;text-align:center}.s04 h2{font-family:'Oswald',sans-serif;font-size:40px;line-height:45px;font-weight:500;color:#fff;margin-bottom:8px}.s04 p{font-family:'Raleway',sans-serif;font-size:18px;line-height:23px;color:${bright};margin-bottom:24px}
+.btn-cta-center{display:inline-block;background:#0174C7;color:#fff;font-family:'Oswald',sans-serif;font-size:22px;font-weight:500;text-transform:uppercase;padding:17px 48px 14px;border-radius:4px;transition:background .2s;line-height:1.2}.btn-cta-center:hover{background:#015fa8}.btn-cta-center small{display:block;font-family:'Raleway',sans-serif;font-size:12px;font-weight:400;text-transform:none;margin-top:3px;opacity:.85}
+.s05{background:#fff;padding:60px 24px}.s05-inner{max-width:900px;margin:0 auto}.s05-inner>h2{font-family:'Oswald',sans-serif;font-size:40px;line-height:45px;font-weight:500;color:${dark};text-align:center;margin-bottom:6px}.s05-inner>h3{font-family:'Oswald',sans-serif;font-size:28px;line-height:34px;font-weight:400;color:${bright};text-align:center;margin-bottom:36px}
+.s05-cols{display:flex;gap:48px;align-items:flex-start}.s05-photo{flex:0 0 300px}.s05-photo .photo-box{width:300px;height:400px;background:#e8ddd0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'Oswald',sans-serif;font-size:18px;color:#999;text-align:center}.s05-bio{flex:1}.s05-bio p{font-family:'Raleway',sans-serif;font-size:18px;line-height:23px;color:#444;margin-bottom:14px}
+.s05-social{display:flex;gap:10px;margin-top:16px}.s05-social a{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.s06{background:${dark};padding:60px 24px}.s06-inner{max-width:900px;margin:0 auto;text-align:center}.s06-inner h2{font-family:'Oswald',sans-serif;font-size:40px;line-height:45px;font-weight:500;color:#fff;margin-bottom:6px}.s06-inner .sub{font-family:'Raleway',sans-serif;font-size:18px;color:${bright};font-style:italic;margin-bottom:36px}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:left}.testi-card{background:#fff;border-radius:4px;padding:24px 20px}.testi-card p{font-family:'Raleway',sans-serif;font-size:15px;line-height:22px;color:#555;font-style:italic;margin-bottom:16px}.testi-card .name{font-family:'Oswald',sans-serif;font-size:16px;font-weight:500;color:#222;font-style:normal}.testi-card .company{font-family:'Raleway',sans-serif;font-size:13px;color:#999}
+.s07{background:#fff;padding:60px 24px;text-align:center}.s07-inner{max-width:900px;margin:0 auto}.s07-inner>h2{font-family:'Oswald',sans-serif;font-size:40px;line-height:45px;font-weight:500;color:${dark};margin-bottom:8px}.s07-inner>.sub{font-family:'Raleway',sans-serif;font-size:18px;color:#666;margin-bottom:32px}
+.countdown-box{border:2px dashed ${dark};border-radius:6px;padding:36px 32px;max-width:860px;margin:0 auto}.cd-label{font-family:'Raleway',sans-serif;font-size:14px;color:#777;margin-bottom:16px}.cd-timer{display:flex;justify-content:center;gap:6px;align-items:flex-start;margin-bottom:20px}.cd-unit{text-align:center}.cd-num{font-family:'Oswald',sans-serif;font-size:44px;line-height:1;font-weight:700;color:#D0021B}.cd-lbl{font-family:'Raleway',sans-serif;font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-top:3px}.cd-sep{font-family:'Oswald',sans-serif;font-size:36px;color:#D0021B;line-height:1;margin-top:4px}
+.countdown-box img.cover{width:200px;margin:0 auto 20px;filter:drop-shadow(0 6px 16px rgba(0,0,0,.25))}.cd-price .label{display:block;font-family:'Oswald',sans-serif;font-size:28px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#555}.cd-price .amount{display:block;font-family:'Oswald',sans-serif;font-size:55px;line-height:60px;font-weight:700;color:${dark}}.cd-price-note{font-family:'Raleway',sans-serif;font-size:14px;color:#888;margin-bottom:20px}.s07-tagline{font-family:'Oswald',sans-serif;font-size:40px;line-height:45px;font-weight:600;color:${dark};margin-top:24px}
+.site-footer{background:${neutral};border-top:1px solid #ddd;padding:32px 24px;text-align:center}.site-footer p{font-family:'Raleway',sans-serif;font-size:12px;line-height:20px;color:#888;max-width:720px;margin:0 auto 6px}.site-footer .footer-links{margin-top:12px}.site-footer .footer-links a{font-family:'Raleway',sans-serif;font-size:13px;color:#0174C7;margin:0 8px}
+</style></head><body>
+<div class="s01"><p>Pre-Order Today And Get A Signed Copy Of The Book!</p></div>
+<section class="s02"><div class="s02-inner">
+  <div class="s02-left"><img src="cover.png" alt="${t}" class="cover"><img src="../../secure order.png" alt="Secure Order" style="margin-top:20px;max-width:420px;width:100%;" onerror="this.style.display='none'"></div>
+  <div class="s02-right">
+    <h1 class="s02-title">${t}</h1><p class="s02-subtitle">${s}</p>
+    <p class="s02-award">Award Winning Author</p><p class="s02-author">${a}</p>
+    <a href="order.html" class="btn-cta">Pre-Order Your Copy<small>And Get Your Limited Edition Author Signed Book</small></a>
+    <p class="s02-note">📚 &nbsp;You will get a personally signed copy of the book</p>
+  </div>
+</div></section>
+<section class="s03"><div class="s03-inner">
+  <div class="s03-left"><img src="cover.png" alt="${t}"></div>
+  <div class="s03-right">
+    <h1 class="s03-headline">${t}</h1><h2 class="s03-subheadline">${s}</h2>
+    <p class="s03-credit">Foreword by Raymond Aaron &nbsp;·&nbsp; New York Times Bestselling Author</p>
+    <p class="s03-body">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+    <p class="s03-body">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <p class="s03-body">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+  </div>
+</div></section>
+<section class="s04"><div class="wrap"><h2>Ready To Reserve A Copy For Yourself</h2><p>Get The Limited Edition Author Signed Copy Today</p><a href="order.html" class="btn-cta-center">Pre-Order Your Copy<small>And Get Your Limited Edition Author Signed Book</small></a></div></section>
+<section class="s05"><div class="s05-inner">
+  <h2>About The Author</h2><h3>${a}</h3>
+  <div class="s05-cols">
+    <div class="s05-photo"><div class="photo-box">Author Photo<br>300 × 400</div>
+      <div class="s05-social">
+        <a href="#" style="background:#E1306C"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+        <a href="#" style="background:#1877F2"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+        <a href="#" style="background:#000"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+        <a href="#" style="background:#0A66C2"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2" fill="#fff"/></svg></a>
+      </div>
+    </div>
+    <div class="s05-bio">
+      <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae.</p>
+      <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate.</p>
+      <p>Nam libero tempore cum soluta nobis eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est omnis dolor repellendus.</p>
+    </div>
+  </div>
+</div></section>
+<section class="s06"><div class="s06-inner">
+  <h2>Testimonials For The Book</h2><p class="sub">The Readers Love It!</p>
+  <div class="testi-grid">
+    <div class="testi-card"><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p><p class="name">John Smith</p><p class="company">Company</p></div>
+    <div class="testi-card"><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p><p class="name">Jane Doe</p><p class="company">Company</p></div>
+    <div class="testi-card"><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p><p class="name">Robert Lee</p><p class="company">Company</p></div>
+  </div>
+</div></section>
+<section class="s07"><div class="s07-inner">
+  <h2>Get Your Copy Today</h2><p class="sub">This Is Truly A Limited Offer, So Pre-Order Your Copy Of The Book</p>
+  <div class="countdown-box">
+    <p class="cd-label">Let Me Show You Everything You Get When You Order Your Copy Of:</p>
+    <div class="cd-timer">
+      <div class="cd-unit"><div class="cd-num">31</div><div class="cd-lbl">Days</div></div><div class="cd-sep">:</div>
+      <div class="cd-unit"><div class="cd-num">00</div><div class="cd-lbl">Hours</div></div><div class="cd-sep">:</div>
+      <div class="cd-unit"><div class="cd-num">15</div><div class="cd-lbl">Minutes</div></div><div class="cd-sep">:</div>
+      <div class="cd-unit"><div class="cd-num">34</div><div class="cd-lbl">Seconds</div></div>
+    </div>
+    <img src="cover.png" alt="${t}" class="cover">
+    <p class="cd-price"><span class="label">Pre-Launch Offer</span><span class="amount">$ 19.99</span></p>
+    <p class="cd-price-note">Shipping &amp; Handling Fees Will Be Free If You Pre-Order Before The Timer Runs Out!</p>
+    <a href="order.html" class="btn-cta-center" style="display:block">Pre-Order Your Copy<small>And Get Your Limited Edition Author Signed Book</small></a>
+    <p class="s07-tagline">Pre-Order Your Copy Today<br>And Get Your Own Signed Copy Of The Book</p>
+  </div>
+</div></section>
+<footer class="site-footer"><p>This is not part of Facebook website or Meta, Inc. This site is not endorsed by Facebook or Meta, Inc in anyway.</p><p>Results may not be typical or expected for every person. No results are guaranteed with the help of this book and systems described in the book. Individual results will vary according to effort, determination hard work and available budget.</p><p>Designed and Developed by <strong style="color:#333">The Raymond Aaron Group</strong></p><div class="footer-links"><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms &amp; Conditions</a> | <a href="mailto:contact@example.com">Contact Author</a></div></footer>
+</body></html>`;
+}
+
+function genOrder(b) {
+  const {title:t,subtitle:s,bright,dark} = b;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Complete Your Order</title>${FONTS}<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Raleway',sans-serif;color:#333;background:#F6F6F6}img{max-width:100%;height:auto;display:block}a{text-decoration:none;color:inherit}
+.order-header{background:${dark};padding:22px 24px}.oh-inner{max-width:1100px;margin:0 auto}.oh-top{text-align:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.12)}.oh-top h1{font-family:'Oswald',sans-serif;font-size:clamp(22px,4vw,38px);font-weight:600;color:${bright};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.oh-top h2{font-family:'Oswald',sans-serif;font-size:clamp(16px,3vw,24px);font-weight:300;color:#fff}.oh-bottom{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}.oh-bottom .complete{font-family:'Raleway',sans-serif;font-size:35px;line-height:40px;font-weight:600;color:${bright}}.oh-bottom .help{font-family:'Raleway',sans-serif;font-size:20px;line-height:25px;color:rgba(255,255,255,.7);text-align:right}.oh-bottom .help a{color:${bright}}
+.order-wrap{max-width:1100px;margin:24px auto;padding:0 24px 40px;display:flex;gap:80px;align-items:flex-start;flex-wrap:wrap}.form-card{flex:1;min-width:320px;max-width:580px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.10)}.step-header{background:${bright};color:#fff;font-family:'Raleway',sans-serif;font-size:15px;font-weight:600;padding:14px 20px;text-align:center}.form-section{padding:20px 20px 4px}.field{margin-bottom:14px}.field input,.field select{width:100%;padding:13px 15px;font-family:'Raleway',sans-serif;font-size:14px;color:#333;border:1px solid #ccc;border-radius:4px;background:#fff;outline:none}.field input::placeholder{color:#aaa}
+.payment-section{padding:0 20px 20px}.payment-option{border:1px solid #ddd;border-radius:4px;padding:14px 16px;margin-bottom:10px}.radio-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-family:'Raleway',sans-serif;font-size:14px;color:#333;font-weight:600}.radio-row input{accent-color:${bright};width:16px;height:16px}.card-logos{display:flex;gap:6px;align-items:center;margin-left:auto}.card-logo{height:22px;border:1px solid #ddd;border-radius:3px;padding:2px 6px;font-size:10px;font-weight:700;display:flex;align-items:center;color:#fff}.card-fields{margin-top:10px}.card-fields input{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:4px;font-family:'Raleway',sans-serif;font-size:14px;margin-bottom:8px}.card-row{display:flex;gap:10px}.card-row input{flex:1}
+.btn-confirm{display:block;width:100%;background:#189850;color:#fff;font-family:'Raleway',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:18px;border:none;cursor:pointer;text-align:center;text-decoration:none}.trust-badges{display:flex;justify-content:center;gap:28px;padding:16px 20px;border-top:1px solid #eee;flex-wrap:wrap}.badge{display:flex;align-items:center;gap:8px;font-family:'Raleway',sans-serif;font-size:12px;color:#888}.badge .icon{font-size:22px}
+.promo-col{flex:0 0 340px}.promo-countdown{text-align:center;margin-bottom:20px}.cd-row{display:flex;justify-content:center;gap:6px;align-items:flex-start}.cd-block{text-align:center}.cd-block .num{font-family:'Oswald',sans-serif;font-size:56px;font-weight:700;color:#D0021B;line-height:1}.cd-block .lbl{font-family:'Raleway',sans-serif;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-top:4px}.cd-colon{font-family:'Oswald',sans-serif;font-size:44px;color:#D0021B;margin-top:4px;line-height:1}.promo-col img{width:100%;max-width:320px;margin:0 auto 16px;filter:drop-shadow(0 6px 18px rgba(0,0,0,.2))}.promo-col .signed{font-family:'Raleway',sans-serif;font-size:16px;color:${bright};text-align:center;font-weight:700}
+</style></head><body>
+<div class="order-header"><div class="oh-inner"><div class="oh-top"><h1>${t}</h1><h2>${s}</h2></div><div class="oh-bottom"><span class="complete">Complete your order</span><span class="help">Do you need some help? Send me an email<br>to <a href="mailto:support@example.com">support@example.com</a></span></div></div></div>
+<div class="order-wrap">
+  <div class="form-card">
+    <div class="step-header">---- Step #1: Contact information ----</div>
+    <div class="form-section"><div class="field"><input type="text" placeholder="Enter Your First name"></div><div class="field"><input type="text" placeholder="Enter Your Last name"></div><div class="field"><input type="email" placeholder="Enter Your Email Address"></div><div class="field"><input type="text" placeholder="Enter Full Shipping Address"></div><div class="field"><input type="text" placeholder="Enter Your City"></div><div class="field"><input type="text" placeholder="Enter Your Zip code"></div><div class="field"><select><option>Canada</option><option>United States</option><option>United Kingdom</option><option>Australia</option><option>New Zealand</option><option>Other</option></select></div></div>
+    <div class="step-header">--- Step #2: Payment Information ---</div>
+    <div class="payment-section" style="padding-top:20px"><div class="payment-option"><div class="radio-row"><input type="radio" name="pay" checked><span>Credit or debit card</span><div class="card-logos"><div class="card-logo" style="background:#1A1F71">VISA</div><div class="card-logo" style="background:#EB001B">MC</div><div class="card-logo" style="background:#2E77BC">AMEX</div><div class="card-logo" style="background:#FF6600">DISC</div></div></div><div class="card-fields"><input type="text" placeholder="1234 1234 1234 1234"><div class="card-row"><input type="text" placeholder="MM / YY"><input type="text" placeholder="CVC"></div></div></div>
+    <a href="confirmed.html" class="btn-confirm">CONFIRM MY ORDER</a>
+    <div class="trust-badges"><div class="badge"><span class="icon">🛡</span><span>Secure<br>Checkout</span></div><div class="badge"><span class="icon">✅</span><span>Satisfaction<br>Guarantee</span></div><div class="badge"><span class="icon">🔒</span><span>Privacy<br>Protected</span></div></div></div>
+  </div>
+  <div class="promo-col"><div class="promo-countdown"><div class="cd-row"><div class="cd-block"><div class="num">31</div><div class="lbl">Days</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">00</div><div class="lbl">Hours</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">15</div><div class="lbl">Minutes</div></div><div class="cd-colon">:</div><div class="cd-block"><div class="num">01</div><div class="lbl">Seconds</div></div></div></div><img src="cover.png" alt="${t}"><p class="signed">Get Your Signed Copy Today</p></div>
+</div>
+${TABLE_FOOT}</body></html>`;
+}
+
+function genConfirmed(b) {
+  const {title:t,bright,dark} = b;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Order Confirmed</title>${FONTS}<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Raleway',sans-serif;color:#333;background:#fff}img{max-width:100%;height:auto;display:block}a{text-decoration:none;color:inherit}
+.confirm-header{background:${dark};padding:18px 24px 16px;text-align:center}.confirm-header h1{font-family:'Oswald',sans-serif;font-size:clamp(36px,5.5vw,64px);font-weight:700;color:#FFE600;text-transform:uppercase;letter-spacing:2px;line-height:1.05;margin-bottom:6px}.confirm-header h2{font-family:'Oswald',sans-serif;font-size:clamp(18px,3vw,30px);font-weight:600;color:#fff;margin-bottom:8px}.confirm-header .body-txt{font-family:'Raleway',sans-serif;font-size:14px;line-height:1.5;color:rgba(255,255,255,.85);max-width:700px;margin:0 auto 3px}.confirm-header em{font-style:italic;color:rgba(255,255,255,.6);font-size:13px}
+.confirm-body{max-width:1100px;margin:0 auto;padding:24px 24px 20px;display:flex;gap:48px;align-items:center}.confirm-cover{flex:0 0 340px}.confirm-cover img{width:100%;max-width:340px;max-height:calc(100vh - 240px);object-fit:contain;filter:drop-shadow(0 10px 28px rgba(0,0,0,.22))}.confirm-right{flex:1}
+.confirm-right .ty{font-family:'Oswald',sans-serif;font-size:42px;font-weight:500;color:#333;margin-bottom:10px}.confirm-right .ty-body{font-family:'Raleway',sans-serif;font-size:15px;line-height:1.6;color:#555;margin-bottom:14px;max-width:540px}.survey-q{font-family:'Raleway',sans-serif;font-size:15px;font-weight:700;color:#333;margin-bottom:10px}.survey-form{max-width:560px}
+.survey-label{display:flex;align-items:center;justify-content:space-between;background:#f0f2f5;border-radius:50px;padding:10px 20px;margin-bottom:8px;cursor:pointer}.survey-label:hover{background:#e4e6ea}.survey-label span{font-family:'Raleway',sans-serif;font-size:14px;color:#444}.survey-label input[type=radio]{width:18px;height:18px;accent-color:${bright};flex-shrink:0}
+.site-footer{background:#f5f5f5;border-top:1px solid #ddd;padding:24px 20px;text-align:center;font-family:'Raleway',sans-serif;font-size:12px;color:#888;line-height:1.9}.site-footer a{color:#0174C7}.site-footer .footer-links{margin-top:8px}
+</style></head><body>
+<div class="confirm-header"><h1>Order Confirmed 👍</h1><h2>Congrats! Your Book Is On The Way</h2><p class="body-txt">You Will Receive Your Signed Copy Of The Book Once The Book Is Published, Thank you for your support.</p><p><em>(International Shipping Might Take A Bit Longer)</em></p></div>
+<div class="confirm-body"><div class="confirm-cover"><img src="cover.png" alt="${t}"></div><div class="confirm-right"><p class="ty">Thank you!</p><p class="ty-body">I will personally sign and send you a copy. Now, please answer the below question which will help me customize the book to you.</p><p class="survey-q">What Are You Most Looking Forward To In The Book?</p><form class="survey-form"><label class="survey-label"><span>Learning Practical Strategies</span><input type="radio" name="s"></label><label class="survey-label"><span>Gaining a Fresh Perspective</span><input type="radio" name="s"></label><label class="survey-label"><span>Building Confidence and Clarity</span><input type="radio" name="s"></label><label class="survey-label"><span>Creating Lasting Change</span><input type="radio" name="s"></label><label class="survey-label"><span>All of the Above</span><input type="radio" name="s"></label></form></div></div>
+<footer class="site-footer"><p>This is not part of Facebook website or Meta, Inc. This site is not endorsed by Facebook or Meta, Inc in anyway.</p><p>Results may not be typical or expected for every person.</p><p>Designed and Developed by <strong style="color:#333">The Raymond Aaron Group</strong></p><div class="footer-links"><a href="privacy.html">Privacy Policy</a> | <a href="terms.html">Terms &amp; Conditions</a> | <a href="mailto:contact@example.com">Contact Author</a></div></footer>
+</body></html>`;
+}
+
+function genTerms(b) {
+  const {title:t,dark} = b;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Terms &amp; Conditions</title>${FONTS}<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Raleway',sans-serif;color:#333;background:#fff}
+.legal-header{background:${dark};padding:50px 0}.legal-header-inner{max-width:1200px;margin:0 auto;padding:0 40px}.legal-header h1{font-family:'Oswald',sans-serif;font-size:72px;line-height:78px;font-weight:700;color:#fff}
+.legal-page{max-width:1200px;margin:0 auto;padding:40px 40px 60px;display:flex;gap:48px;align-items:flex-start}.legal-main{flex:1;min-width:0}.legal-main .updated{font-family:'Raleway',sans-serif;font-size:13px;color:#777;font-style:italic;margin-bottom:6px}.legal-main .please{font-family:'Raleway',sans-serif;font-size:16px;color:#555;margin-bottom:28px}.legal-main h2{font-family:'Oswald',sans-serif;font-size:28px;line-height:34px;font-weight:500;color:#1A0306;margin:32px 0 10px}.legal-main h3{font-family:'Oswald',sans-serif;font-size:20px;line-height:26px;font-weight:400;color:#1A0306;margin:16px 0 8px;padding-left:16px}.legal-main p{font-family:'Raleway',sans-serif;font-size:16px;line-height:26px;color:#444;margin-bottom:12px}.legal-main blockquote{border-left:3px solid #ddd;padding-left:16px;margin:10px 0}.legal-main blockquote p{color:#555}
+.legal-sidebar{flex:0 0 280px}.sidebar-box{border:1px solid #ddd;border-radius:4px;background:#fff;padding:18px 20px;margin-bottom:20px}.sidebar-head{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#189850;margin-bottom:10px}.sidebar-body{font-family:'Raleway',sans-serif;font-size:13px;line-height:1.7;color:#555}
+</style></head><body>
+<div class="legal-header"><div class="legal-header-inner"><h1>Terms and Conditions</h1></div></div>
+<div class="legal-page"><div class="legal-main"><p class="updated">Last updated Jan 31st 2026.</p><p class="please">Please read them carefully before using Our Service.</p><h2>Article 1: General</h2><p>By using the Site, you agree to be bound by these Terms and Conditions and to use the Site in accordance with these Terms of Service, our Privacy Policy and any additional terms and conditions that may apply to specific sections of the Site or to products and services available through the Site or from ${t}.</p><h3>Article 1a: Age limit</h3><blockquote><p>Age restrictions apply. ${t} does not permit those under 18 to use the Service. Any subscriber who does not meet these criteria will be deleted from our database as soon as this is brought to our attention.</p></blockquote><h2>Article 2: Placing Order</h2><p>By placing an Order for Products through the Service, you warrant that you are legally capable of entering into binding contracts.</p><h2>Article 3: Price</h2><p>The prices are indicated in dollars, excluding the shipping and processing of your order. The price of items can be changed at any time. However, the price applied to an order will be the one stated at the time of the order.</p><h2>Article 4: Your information</h2><p>If You wish to place an Order for Products available on the Service, you may be asked to supply certain information relevant to your Order including your name, email, phone number, credit card number, billing address, and shipping information.</p><h2>Article 5: Payment</h2><p>Payment is due immediately on the date of the order; this includes pre-order products. Payment can be made through Visa, MasterCard, American Express or online payment methods.</p><h2>Article 6: Delivery</h2><p>Delivery is made to the address you specified when placing your order. The risks will be your responsibility from the date on which the ordered products have left our premises.</p><h2>Article 7: Changes</h2><p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms.</p><h2>Article 8: Company information</h2><p><em>${t}</em><br><em>[Contact Info]</em></p></div><div class="legal-sidebar"><div class="sidebar-box"><div class="sidebar-head">Hello</div><div class="sidebar-body">Welcome to our Terms and Conditions! These boxes aren't legally binding, you can use them as an aid for understanding the legal language.</div></div></div></div>
+${TABLE_FOOT}</body></html>`;
+}
+
+function genPrivacy(b) {
+  const {title:t,bright,dark} = b;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t} — Privacy Policy</title>${FONTS}<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{font-family:'Raleway',sans-serif;color:#333;background:#fff}
+.legal-header{background:${dark};padding:50px 0}.legal-header-inner{max-width:1200px;margin:0 auto;padding:0 40px}.legal-header h1{font-family:'Oswald',sans-serif;font-size:72px;line-height:78px;font-weight:700;color:#fff}
+.legal-page{max-width:1200px;margin:0 auto;padding:40px 40px 60px;display:flex;gap:48px;align-items:flex-start}.legal-main{flex:1;min-width:0}.legal-main .updated{font-family:'Raleway',sans-serif;font-size:13px;color:#777;font-style:italic;margin-bottom:20px}.legal-main h2{font-family:'Oswald',sans-serif;font-size:28px;line-height:34px;font-weight:500;color:#1A0306;margin:32px 0 10px}.legal-main p{font-family:'Raleway',sans-serif;font-size:16px;line-height:26px;color:#444;margin-bottom:12px}.legal-main ul{padding-left:20px;margin-bottom:12px}.legal-main ul li{font-family:'Raleway',sans-serif;font-size:16px;line-height:26px;color:#444;margin-bottom:8px}.legal-main ul li a{color:${bright};text-decoration:underline}
+.legal-sidebar{flex:0 0 280px}.sidebar-box{border:1px solid #ddd;border-radius:4px;background:#fff;padding:18px 20px;margin-bottom:20px}.sidebar-head{font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:#189850;margin-bottom:10px}.sidebar-body{font-family:'Raleway',sans-serif;font-size:13px;line-height:1.7;color:#555}.sidebar-body .def-term{font-family:'Oswald',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#189850;margin-top:14px;margin-bottom:4px;font-weight:600}
+</style></head><body>
+<div class="legal-header"><div class="legal-header-inner"><h1>Privacy Policy</h1></div></div>
+<div class="legal-page"><div class="legal-main"><p class="updated">Last updated Jan 31st 2026.</p><p>This Privacy Policy governs the manner in which the website collects, uses, maintains and discloses information collected from users of the website. This privacy policy applies to the Site and all products and services offered by ${t}.</p><h2>Personal identification information</h2><p>We may collect personal identification information from Users in a variety of ways, including, but not limited to, when Users visit our Site, register on the site, subscribe to the newsletter, and in connection with other activities, services, features or resources we make available on our Site.</p><h2>Non-personal identification information</h2><p>We may collect non-personal identification information about Users whenever they interact with our Site. Non-personal identification information may include the browser name, the type of computer and technical information about Users means of connection to our Site.</p><h2>Web browser cookies</h2><p>Our Site may use 'cookies' to enhance User experience. Users may choose to set their web browser to refuse cookies, or to alert you when cookies are being sent.</p><h2>How we use collected information</h2><p>${t} may collect and use Users' personal information for the following purposes:</p><ul><li><a href="#">To improve customer service</a> — Information you provide helps us respond to your customer service requests more efficiently.</li><li><a href="#">To personalize user experience</a> — We may use information in the aggregate to understand how our Users use the services provided on our Site.</li><li><a href="#">To send periodic emails</a> — We may use the email address to send User information and updates pertaining to their order.</li></ul><h2>How we protect your information</h2><p>We adopt appropriate data collection, storage and processing practices, and security measures to protect against unauthorized access, alteration, disclosure or destruction of your personal information.</p><h2>Changes to this privacy policy</h2><p>${t} has the discretion to update this privacy policy at any time. We encourage Users to frequently check this page for any changes to stay informed about how we are helping to protect the personal information we collect.</p></div><div class="legal-sidebar"><div class="sidebar-box"><div class="sidebar-head">Hi There</div><div class="sidebar-body">Welcome to our Privacy Policy! These boxes aren't legally binding, you can use them as an aid for understanding the legal language.<div class="def-term">Definitions</div>"Personal Information" is information someone can use to identify you.</div></div></div></div>
+${TABLE_FOOT}</body></html>`;
+}
+
+/* ── Sort existing rows on load (alphabetical) ── */
+window.addEventListener('DOMContentLoaded', () => {
+  /* Restore saved API key */
+  const savedKey = localStorage.getItem('anthropicApiKey');
+  if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
+
+  /* Save API key to localStorage whenever it changes */
+  document.getElementById('apiKeyInput').addEventListener('input', () => {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (val) localStorage.setItem('anthropicApiKey', val);
+    else     localStorage.removeItem('anthropicApiKey');
+  });
+
+  /* Stamp existing rows with data-title for sorting */
+  document.querySelectorAll('#bookTableBody tr').forEach(tr => {
+    const titleEl = tr.querySelector('.book-title');
+    if (titleEl) tr.dataset.title = titleEl.textContent.trim().toLowerCase();
+  });
+  sortTableAlpha();
+  renumberRows();
+});
+</script>
+</body>
+</html>

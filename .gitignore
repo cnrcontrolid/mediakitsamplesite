@@ -1,0 +1,10 @@
+# Local working folders — not needed on web
+3D book covers/
+screenshots/
+
+# Mac junk
+.DS_Store
+**/.DS_Store
+
+# Shell scripts (local use only)
+*.command

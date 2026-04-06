@@ -1,0 +1,108 @@
+﻿Website Demo Requirements
+
+
+Steps to follow
+For each 3d book cover inside the folder ‘3D book covers’ do this
+1. Remove background and make it transparent .png
+2. Crop the book cover so there is no white space int 750 x 1000 final dimension
+3. Extract Author name
+4. Extract Title & Subtitle
+5. Build home landing page > button links to order form page
+6. Build order form page > button links to confirmation page
+7. Build Confirmation page
+8. Build footer which is universal to all the pages which links to Terms & Condition and Privacy Policy
+9. Contact Author link in footer can be without action
+10. Use Lorem Ipsum text for about author, about book text
+11. Add the landing page link
+
+
+Remember this - these sales funnel pages are just dummy sites and will not be pushed to GitHub. The purpose is for showing it to prospects, 
+
+
+Each book will have a folder inside sites
+
+
+Do you think you can do that?
+
+
+________________
+Branding Requirements
+3D Book cover: 750 x 1000
+
+
+Section headers 
+* H1 text: Oswald
+* Font size 55, height 60
+Section headers 
+* H2 text: Oswald
+* Font size 40, height 45
+Landing Page
+Section 01: Pre-Order Today And Get A Signed Copy Of The Book!
+* Font size 32
+* Font height 38
+* BG color: bright color from the book cover or bright yellow
+Section 02: Hero section
+* Book image: width 420
+* Use the ‘trust2-black-opacity1.png’ below the book cover
+* BG is white
+* Padding: 60px top and bottom
+Section 03: About the book
+* Headline font 65pc and height 71
+* Subheadline font 40 and height 45
+* Font size 18 and height 23
+Section 04: Ready To Reserve A Copy For Yourself
+* BG color - dark color from the book
+* Button color - contrasting color
+Section 05: About the author
+* Profile photo - rectangle, ratio 750 x 1000, width 400
+* Font size 18 and height 23
+* Social media icons - use flat icon of actual IG, FB, X and LinkedIn
+
+
+Section 06: Testimonials
+* 3 columns
+* BG, dark color from book cover
+
+
+Section 07: Get your book with countdown timer
+* BG is white
+* Box element has border, dashed as in screenshot, color is dark color from the book cover
+* Pre-Launch Offer $ 19.99, text in H1
+________________
+
+
+Order form page
+Section 01: Title and subtitle with contact info
+* BG use primary color from book cover
+* Use H1 for title
+* Use H2 for subtitle 
+
+
+Section 02: The form on left and 3D book on right
+* Give space between the 2 columns, the book is too close (see screenshot)
+
+
+Confirmation page
+Section 01: Order Confirmed👍🏼
+* BG use dark color from the book
+* Order Confirmed👍🏼 is H1
+* Congrats! Your Book Is On The Way is H2
+
+
+Section 02: Thank you columns
+* Spacing to match the screenshot
+* Book image: width 420
+* BG is white
+
+
+
+
+Terms and Condition page & Privacy page
+Use H1 and H2 for section headers
+Font is 18 and height 23
+
+
+
+
+________________
+User Experience
