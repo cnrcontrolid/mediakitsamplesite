@@ -58,6 +58,13 @@ td.link-cell a:hover { background: #444; }
 }
 .btn-create:hover { background: #3a3a3a; }
 .btn-create svg { flex-shrink: 0; }
+.btn-delete-local {
+  font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: #c0392b; background: #fff; border: 1.5px solid #c0392b;
+  padding: 10px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center;
+  gap: 8px; transition: background .15s, color .15s; white-space: nowrap;
+}
+.btn-delete-local:hover { background: #c0392b; color: #fff; }
 
 /* ── CHECKLIST MODAL ── */
 #checklistModal {
@@ -203,6 +210,10 @@ td.link-cell a:hover { background: #444; }
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
+  </button>
+  <button class="btn-delete-local" onclick="deleteLocalFiles()" title="Delete all local site folders once you've verified the sites are live">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></polyline></svg>
+    Delete Local Files
   </button>
   <button class="btn-create" onclick="createSampleSites()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -648,25 +659,12 @@ async function confirmBook() {
         const missingFiles = await verifyGitHubDeploy(folderName, ghToken);
 
         if (missingFiles.length > 0) {
-          /* Push claimed success but files aren't there — keep local copy, warn loudly */
-          showProgress(`❌ GitHub verification FAILED — ${missingFiles.join(', ')} not found in repo. Local files kept. Check your GitHub token permissions and try again.`);
+          showProgress(`❌ GitHub verification FAILED — ${missingFiles.join(', ')} not found in repo. Check your GitHub token permissions and try again.`);
           await new Promise(r => setTimeout(r, 6000));
         } else {
           showProgress(`✅ "${item.title}" verified in GitHub — Vercel deploying…`);
           await new Promise(r => setTimeout(r, 1500));
-
-          /* Only delete local folder once we've confirmed files are in GitHub */
-          try {
-            const saved = await _loadFolders();
-            if (saved.output) {
-              const perm = await saved.output.requestPermission({ mode: 'readwrite' });
-              if (perm === 'granted') {
-                await saved.output.removeEntry(folderName, { recursive: true });
-              }
-            }
-          } catch(delErr) {
-            console.warn('Could not delete local folder after push:', delErr.message);
-          }
+          /* Local files intentionally kept — use "Delete Local Files" button when ready */
         }
       } catch(e) {
         console.error('GitHub push failed:', e);
@@ -1001,6 +999,45 @@ function skipChecklist() {
 function cancelChecklist() {
   document.getElementById('checklistModal').classList.remove('open');
   if (_checklistResolve) { _checklistResolve(false); _checklistResolve = null; }
+}
+
+/* Delete all local site folders manually */
+async function deleteLocalFiles() {
+  if (!confirm('Delete all local site folders?\n\nOnly do this after confirming your sites are live on Vercel.')) return;
+
+  const saved = await _loadFolders();
+  if (!saved.output) {
+    alert('No output folder found. Select your sites folder first by running Create Sample Sites.');
+    return;
+  }
+
+  const perm = await saved.output.requestPermission({ mode: 'readwrite' });
+  if (perm !== 'granted') {
+    alert('Permission denied — could not access the local sites folder.');
+    return;
+  }
+
+  let deleted = 0, failed = 0;
+  showProgress('🗑 Deleting local site folders…');
+
+  for await (const [name, handle] of saved.output.entries()) {
+    if (handle.kind === 'directory' && name.startsWith('book-')) {
+      try {
+        await saved.output.removeEntry(name, { recursive: true });
+        deleted++;
+      } catch(e) {
+        console.warn(`Could not delete ${name}:`, e.message);
+        failed++;
+      }
+    }
+  }
+
+  hideProgress();
+  if (failed > 0) {
+    alert(`Deleted ${deleted} folder${deleted !== 1 ? 's' : ''}. ${failed} could not be deleted.`);
+  } else {
+    alert(`✅ Deleted ${deleted} local site folder${deleted !== 1 ? 's' : ''}. Your GitHub/Vercel copies are untouched.`);
+  }
 }
 
 function toggleSettings() {
