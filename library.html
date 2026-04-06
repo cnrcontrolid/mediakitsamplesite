@@ -59,6 +59,58 @@ td.link-cell a:hover { background: #444; }
 .btn-create:hover { background: #3a3a3a; }
 .btn-create svg { flex-shrink: 0; }
 
+/* ── CHECKLIST MODAL ── */
+#checklistModal {
+  display: none; position: fixed; inset: 0; z-index: 1100;
+  background: rgba(0,0,0,.55); align-items: center; justify-content: center;
+}
+#checklistModal.open { display: flex; }
+.cl-box {
+  background: #fff; border-radius: 14px; width: 92vw; max-width: 560px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25); overflow: hidden;
+}
+.cl-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; gap: 12px;
+}
+.cl-header h3 { font-family: 'Raleway', sans-serif; font-size: 16px; font-weight: 700; color: #1a1a1a; flex: 1; }
+.cl-book-name { font-family: 'Raleway', sans-serif; font-size: 12px; color: #888; margin-top: 2px; }
+.cl-body { padding: 16px 24px; max-height: 55vh; overflow-y: auto; }
+.cl-section { margin-bottom: 14px; }
+.cl-section-label {
+  font-family: 'Raleway', sans-serif; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px; color: #aaa; margin-bottom: 6px;
+}
+.cl-row {
+  display: flex; align-items: flex-start; gap: 10px; padding: 7px 0;
+  border-bottom: 1px solid #f9f9f9; font-family: 'Raleway', sans-serif; font-size: 13px; color: #444;
+}
+.cl-row:last-child { border-bottom: none; }
+.cl-icon { font-size: 14px; line-height: 1.4; flex-shrink: 0; }
+.cl-label { flex: 1; line-height: 1.4; }
+.cl-detail { font-size: 11px; color: #999; margin-top: 2px; }
+.cl-footer {
+  padding: 16px 24px; border-top: 1px solid #f0f0f0;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.cl-summary { font-family: 'Raleway', sans-serif; font-size: 13px; }
+.cl-summary .pass { color: #22a06b; font-weight: 700; }
+.cl-summary .fail { color: #d0021b; font-weight: 700; }
+.cl-summary .warn { color: #e07c00; font-weight: 700; }
+.cl-btns { display: flex; gap: 8px; }
+.cl-btn {
+  font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 700;
+  padding: 9px 18px; border-radius: 7px; border: none; cursor: pointer; transition: background .2s;
+}
+.cl-btn-push { background: #1a1a1a; color: #fff; }
+.cl-btn-push:hover { background: #333; }
+.cl-btn-push:disabled { background: #ccc; color: #fff; cursor: not-allowed; }
+.cl-btn-skip { background: #f3f3f3; color: #666; }
+.cl-btn-skip:hover { background: #e8e8e8; }
+.cl-btn-cancel { background: #fff; color: #999; border: 1px solid #ddd; }
+.cl-btn-cancel:hover { background: #fafafa; }
+
 /* ── PROGRESS BAR ── */
 #progressBar {
   display: none; max-width: 1000px; margin: 0 auto 14px; padding: 0 24px;
@@ -156,6 +208,27 @@ td.link-cell a:hover { background: #444; }
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Create Sample Sites
   </button>
+</div>
+
+<!-- ── CHECKLIST MODAL ── -->
+<div id="checklistModal">
+  <div class="cl-box">
+    <div class="cl-header">
+      <div>
+        <h3>Pre-Deploy Checklist</h3>
+        <div class="cl-book-name" id="clBookName"></div>
+      </div>
+    </div>
+    <div class="cl-body" id="clBody"></div>
+    <div class="cl-footer">
+      <div class="cl-summary" id="clSummary"></div>
+      <div class="cl-btns">
+        <button class="cl-btn cl-btn-cancel" onclick="cancelChecklist()">Cancel</button>
+        <button class="cl-btn cl-btn-skip"   onclick="skipChecklist()">Skip &amp; Push</button>
+        <button class="cl-btn cl-btn-push"   id="clPushBtn" onclick="proceedAfterChecklist()">Push to GitHub</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Hidden settings tray — toggled by gear icon -->
@@ -543,6 +616,20 @@ async function confirmBook() {
       console.warn('Could not move original cover into site folder:', e.message);
     }
 
+    /* ── Run pre-deploy checklist ── */
+    hideProgress();
+    const checklistApproved = await showChecklist(
+      item.title, item.author, item.subtitle, folderName, pages, pngBlob
+    );
+    if (!checklistApproved) {
+      /* User cancelled — clean up local folder and abort */
+      try { await _sitesDir.removeEntry(folderName, { recursive: true }); } catch(_){}
+      _qi++;
+      showNextModal();
+      return;
+    }
+    showProgress(`Pushing "${item.title}" to GitHub…`);
+
     /* Auto-push to GitHub → triggers Vercel deploy automatically */
     const ghToken = localStorage.getItem('githubToken');
     if (ghToken) {
@@ -730,6 +817,157 @@ async function pushFolderToGitHub(folderName, files, token) {
 }
 
 /* ── PROGRESS ── */
+/* ══════════════════════════════════════════════════
+   PRE-DEPLOY CHECKLIST
+   ══════════════════════════════════════════════════ */
+
+let _checklistResolve = null;  /* resolves with true=push, false=cancel */
+
+/* Run all checks, return array of result objects */
+async function runChecklist(title, author, subtitle, folderName, pages, pngBlob) {
+  const results = [];
+  const base    = `/sites/${folderName}`;
+
+  function check(label, pass, critical, detail='') {
+    results.push({ label, pass, critical, detail });
+  }
+
+  /* ── CATEGORY 1: Metadata ── */
+  check('Title is not empty',                   !!title,                                   true,  title    || '(empty)');
+  check('Author is not empty',                  !!author,                                  true,  author   || '(empty)');
+  check('Subtitle is not empty',                !!subtitle,                                false, subtitle || '(empty)');
+  check('No placeholder text in title/author',
+    !/lorem ipsum|untitled|unknown/i.test(title + author), false,
+    'Check Claude Vision extracted correct text');
+
+  /* ── CATEGORY 2: Files ── */
+  const requiredPages = ['index.html','order.html','confirmed.html','terms.html','privacy.html'];
+  const missingPages  = requiredPages.filter(p => !pages[p]);
+  check('All 5 HTML pages generated',           missingPages.length === 0,                 true,  missingPages.length ? 'Missing: ' + missingPages.join(', ') : '5/5 present');
+  check('cover.png exists',                     !!pngBlob,                                 true,  pngBlob ? `${(pngBlob.size/1024).toFixed(0)} KB` : 'missing');
+
+  const minHtmlBytes = 5 * 1024;
+  const smallPages   = requiredPages.filter(p => pages[p] && pages[p].length < minHtmlBytes);
+  check('HTML pages are not empty (>5 KB each)', smallPages.length === 0,                  false, smallPages.length ? 'Too small: ' + smallPages.join(', ') : 'All pages OK');
+
+  /* ── CATEGORY 3: Image ── */
+  if (pngBlob) {
+    const imgUrl = URL.createObjectURL(pngBlob);
+    const imgCheck = await new Promise(res => {
+      const img = new Image();
+      img.onload  = () => res({ ok: true,  w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => res({ ok: false, w: 0, h: 0 });
+      img.src = imgUrl;
+    });
+    URL.revokeObjectURL(imgUrl);
+
+    check('cover.png loads without error',      imgCheck.ok,                               true,  imgCheck.ok ? `${imgCheck.w}×${imgCheck.h}px` : 'Image failed to load');
+    check('cover.png dimensions ≥ 500×600px',   imgCheck.w >= 500 && imgCheck.h >= 600,    false, `${imgCheck.w}×${imgCheck.h}px`);
+
+    /* Check for transparency by reading a corner pixel of a small canvas */
+    const hasTransparency = await new Promise(res => {
+      if (!imgCheck.ok) return res(false);
+      const img2 = new Image();
+      img2.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img2.naturalWidth; c.height = img2.naturalHeight;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img2, 0, 0);
+        const corners = [
+          ctx.getImageData(0, 0, 1, 1).data,
+          ctx.getImageData(img2.naturalWidth-1, 0, 1, 1).data,
+          ctx.getImageData(0, img2.naturalHeight-1, 1, 1).data,
+          ctx.getImageData(img2.naturalWidth-1, img2.naturalHeight-1, 1, 1).data
+        ];
+        res(corners.some(px => px[3] < 10));
+      };
+      img2.onerror = () => res(false);
+      const url2 = URL.createObjectURL(pngBlob);
+      img2.src = url2;
+      setTimeout(() => URL.revokeObjectURL(url2), 5000);
+    });
+    check('Background removed (has transparency)', hasTransparency,                        false, hasTransparency ? 'Transparent corners detected' : 'No transparent corners — BFS may have missed background');
+  } else {
+    check('cover.png loads without error',      false,  true,  'No blob to test');
+    check('cover.png dimensions ≥ 500×600px',   false,  false, 'No blob to test');
+    check('Background removed (has transparency)', false, false, 'No blob to test');
+  }
+
+  /* ── CATEGORY 4: Links ── */
+  const indexHtml = pages['index.html'] || '';
+
+  const hasAbsoluteLinks = indexHtml.includes(`href="${base}/order.html"`);
+  check('Internal links use absolute paths',    hasAbsoluteLinks,                          true,  hasAbsoluteLinks ? `${base}/… paths found` : `Expected href="${base}/order.html"`);
+
+  const hasRelativeLinks = /href="(order|confirmed|terms|privacy)\.html"/.test(indexHtml);
+  check('No broken relative links remain',      !hasRelativeLinks,                         true,  hasRelativeLinks ? 'Found bare href="page.html" without /sites/ prefix' : 'All clear');
+
+  check('Title appears in index.html content',  indexHtml.includes(title),                 false, title ? `Looking for: "${title.slice(0,40)}"` : 'No title to check');
+  check('Author appears in index.html content', indexHtml.includes(author),                false, author ? `Looking for: "${author.slice(0,40)}"` : 'No author to check');
+
+  return results;
+}
+
+/* Show the checklist modal, return a Promise that resolves with push/cancel decision */
+async function showChecklist(title, author, subtitle, folderName, pages, pngBlob) {
+  const results  = await runChecklist(title, author, subtitle, folderName, pages, pngBlob);
+  const failures = results.filter(r => !r.pass && r.critical);
+  const warnings = results.filter(r => !r.pass && !r.critical);
+  const passes   = results.filter(r => r.pass);
+
+  /* Group by category */
+  const categories = [
+    { label: 'Metadata',  checks: results.slice(0, 4) },
+    { label: 'Files',     checks: results.slice(4, 7) },
+    { label: 'Image',     checks: results.slice(7, 10) },
+    { label: 'Links',     checks: results.slice(10) }
+  ];
+
+  /* Render body */
+  document.getElementById('clBookName').textContent = `"${title}" — ${folderName}`;
+  document.getElementById('clBody').innerHTML = categories.map(cat => `
+    <div class="cl-section">
+      <div class="cl-section-label">${cat.label}</div>
+      ${cat.checks.map(r => `
+        <div class="cl-row">
+          <span class="cl-icon">${r.pass ? '✅' : r.critical ? '❌' : '⚠️'}</span>
+          <div class="cl-label">
+            ${r.label}
+            ${r.detail ? `<div class="cl-detail">${r.detail}</div>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+
+  /* Summary */
+  const sumParts = [];
+  if (passes.length)   sumParts.push(`<span class="pass">${passes.length} passed</span>`);
+  if (warnings.length) sumParts.push(`<span class="warn">${warnings.length} warning${warnings.length>1?'s':''}</span>`);
+  if (failures.length) sumParts.push(`<span class="fail">${failures.length} critical</span>`);
+  document.getElementById('clSummary').innerHTML = sumParts.join(' · ');
+
+  /* Disable push button if critical failures */
+  document.getElementById('clPushBtn').disabled = failures.length > 0;
+
+  /* Show */
+  document.getElementById('checklistModal').classList.add('open');
+
+  /* Return promise resolved by button clicks */
+  return new Promise(res => { _checklistResolve = res; });
+}
+
+function proceedAfterChecklist() {
+  document.getElementById('checklistModal').classList.remove('open');
+  if (_checklistResolve) { _checklistResolve(true); _checklistResolve = null; }
+}
+function skipChecklist() {
+  document.getElementById('checklistModal').classList.remove('open');
+  if (_checklistResolve) { _checklistResolve(true); _checklistResolve = null; }
+}
+function cancelChecklist() {
+  document.getElementById('checklistModal').classList.remove('open');
+  if (_checklistResolve) { _checklistResolve(false); _checklistResolve = null; }
+}
+
 function toggleSettings() {
   const tray = document.getElementById('settingsTray');
   tray.classList.toggle('open');
