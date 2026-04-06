@@ -537,6 +537,19 @@ async function confirmBook() {
         await pushFolderToGitHub(folderName, filesToPush, ghToken);
         showProgress(`✅ "${item.title}" pushed to GitHub — Vercel deploying…`);
         await new Promise(r => setTimeout(r, 1500));
+
+        /* Delete local folder now that it's safely on GitHub */
+        try {
+          const saved = await _loadFolders();
+          if (saved.output) {
+            const perm = await saved.output.requestPermission({ mode: 'readwrite' });
+            if (perm === 'granted') {
+              await saved.output.removeEntry(folderName, { recursive: true });
+            }
+          }
+        } catch(delErr) {
+          console.warn('Could not delete local folder after push:', delErr.message);
+        }
       } catch(e) {
         console.error('GitHub push failed:', e);
         showProgress(`⚠️ GitHub push failed: ${e.message}`);
