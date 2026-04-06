@@ -479,7 +479,9 @@ async function confirmBook() {
   }
 
   /* Always add row + sort, even if file writing failed */
-  addRow(folderName, item.title, item.subtitle, item.author, item.dataUrl);
+  const thumb = await makeThumbnail(item.dataUrl);
+  addRow(folderName, item.title, item.subtitle, item.author, thumb);
+  persistRow(folderName, item.title, item.subtitle, item.author, thumb);
   sortTableAlpha();
   renumberRows();
 
@@ -660,6 +662,40 @@ function resizeDataUrl(dataUrl, maxWidth) {
       c.height = Math.round(img.height * scale);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       res(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = dataUrl;
+  });
+}
+
+/* ── localStorage: persist new rows across page reloads ── */
+function persistRow(folder, title, subtitle, author, thumb) {
+  const rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
+  if (!rows.find(r => r.folder === folder)) {
+    rows.push({ folder, title, subtitle, author, thumb });
+    localStorage.setItem('mkRows', JSON.stringify(rows));
+  }
+}
+
+function loadPersistedRows() {
+  /* Collect folders already in the static HTML so we don't duplicate */
+  const existing = new Set(
+    Array.from(document.querySelectorAll('#bookTableBody tr td.link-cell a'))
+      .map(a => a.getAttribute('href').replace('sites/','').replace('/index.html',''))
+  );
+  const rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
+  rows.forEach(r => {
+    if (!existing.has(r.folder)) addRow(r.folder, r.title, r.subtitle, r.author, r.thumb);
+  });
+}
+
+function makeThumbnail(dataUrl) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 70; c.height = Math.round(img.height * 70 / img.width);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/jpeg', 0.75));
     };
     img.src = dataUrl;
   });
@@ -862,6 +898,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const titleEl = tr.querySelector('.book-title');
     if (titleEl) tr.dataset.title = titleEl.textContent.trim().toLowerCase();
   });
+
+  /* Restore any rows created in previous sessions */
+  loadPersistedRows();
+
   sortTableAlpha();
   renumberRows();
 });
