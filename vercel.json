@@ -2,7 +2,7 @@
   "version": 2,
   "cleanUrls": true,
   "trailingSlash": true,
-  "redirects": [
-    { "source": "/", "destination": "/library.html", "permanent": false }
+  "rewrites": [
+    { "source": "/", "destination": "/library.html" }
   ]
 }
