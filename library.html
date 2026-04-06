@@ -27,8 +27,11 @@ td.cover img { width: 70px; height: auto; display: block; filter: drop-shadow(0 
 td.author { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 600; color: #1a1a1a; white-space: nowrap; }
 td.title-cell .book-title { font-family: 'Oswald', sans-serif; font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
 td.title-cell .book-sub { font-size: 13px; color: #777; line-height: 1.5; }
+td.link-cell { white-space: nowrap; }
 td.link-cell a { display: inline-block; background: #1a1a1a; color: #fff; font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; padding: 10px 20px; border-radius: 6px; text-decoration: none; transition: background .2s; white-space: nowrap; }
 td.link-cell a:hover { background: #444; }
+.btn-del { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; background: none; border: 1.5px solid #e0e0e0; border-radius: 6px; cursor: pointer; color: #bbb; font-size: 15px; margin-left: 8px; vertical-align: middle; transition: background .15s, color .15s, border-color .15s; }
+.btn-del:hover { background: #fff0f0; border-color: #f5a0a0; color: #d0021b; }
 
 /* ── CREATE BUTTON ── */
 .toolbar { max-width: 1000px; margin: 32px auto 18px; padding: 0 24px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
@@ -148,17 +151,14 @@ td.link-cell a:hover { background: #444; }
   </button>
 </div>
 
-<!-- Deploy notice (shown after generation completes) -->
+<!-- Git action banner (shown after generate or delete) -->
 <div id="deployNotice">
   <div class="deploy-box">
-    <div class="deploy-icon">🚀</div>
+    <div class="deploy-icon" id="deployIcon">🚀</div>
     <div class="deploy-text">
-      <strong>Sites created! Push to GitHub to make them live on Vercel</strong>
-      <p>The HTML files were saved to your local <code>sites/</code> folder. Run these commands in Terminal to deploy to Vercel:</p>
-      <code class="deploy-cmd">cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\ Drive/___Claude\ folder/mediakitsamplesites
-git add sites/
-git commit -m "Add generated sample sites"
-git push</code>
+      <strong id="deployTitle"></strong>
+      <p id="deployBody"></p>
+      <code class="deploy-cmd" id="deployCmd"></code>
     </div>
     <button class="deploy-close" onclick="document.getElementById('deployNotice').style.display='none'" title="Dismiss">✕</button>
   </div>
@@ -210,7 +210,7 @@ git push</code>
                     <div class="book-title">Heartbeat</div>
                     <div class="book-sub">Awaken Your Love, Lose the Weight and Reclaim Your Freedom</div>
                 </td>
-                <td class="link-cell"><a href="sites/book-01-heartbeat/index.html">View Site →</a></td>
+                <td class="link-cell"><a href="sites/book-01-heartbeat/index.html">View Site →</a><button class="btn-del" onclick="deleteRow('book-01-heartbeat',this)" title="Delete">🗑</button></td>
             </tr>
             <tr>
                 <td class="num">2</td>
@@ -220,7 +220,7 @@ git push</code>
                     <div class="book-title">The Book on Procrastination</div>
                     <div class="book-sub">Understand Resistance, Feel Your Fear and Take Action Anyway</div>
                 </td>
-                <td class="link-cell"><a href="sites/book-02-procrastination/index.html">View Site →</a></td>
+                <td class="link-cell"><a href="sites/book-02-procrastination/index.html">View Site →</a><button class="btn-del" onclick="deleteRow('book-02-procrastination',this)" title="Delete">🗑</button></td>
             </tr>
             <tr>
                 <td class="num">3</td>
@@ -230,7 +230,7 @@ git push</code>
                     <div class="book-title">A Half Island Life</div>
                     <div class="book-sub">How to Learn Mandarin and Live in China</div>
                 </td>
-                <td class="link-cell"><a href="sites/book-03-half-island-life/index.html">View Site →</a></td>
+                <td class="link-cell"><a href="sites/book-03-half-island-life/index.html">View Site →</a><button class="btn-del" onclick="deleteRow('book-03-half-island-life',this)" title="Delete">🗑</button></td>
             </tr>
             <tr>
                 <td class="num">4</td>
@@ -240,7 +240,7 @@ git push</code>
                     <div class="book-title">Half the Distance, Twice the Triumph</div>
                     <div class="book-sub">Mindset, Training and Motivation for Your First Half Marathon</div>
                 </td>
-                <td class="link-cell"><a href="sites/book-04-half-the-distance/index.html">View Site →</a></td>
+                <td class="link-cell"><a href="sites/book-04-half-the-distance/index.html">View Site →</a><button class="btn-del" onclick="deleteRow('book-04-half-the-distance',this)" title="Delete">🗑</button></td>
             </tr>
             <tr>
                 <td class="num">5</td>
@@ -250,7 +250,7 @@ git push</code>
                     <div class="book-title">More Than Dog Training</div>
                     <div class="book-sub">What Families and Their Canine Companions Really Need to Thrive Together</div>
                 </td>
-                <td class="link-cell"><a href="sites/book-05-dog-training/index.html">View Site →</a></td>
+                <td class="link-cell"><a href="sites/book-05-dog-training/index.html">View Site →</a><button class="btn-del" onclick="deleteRow('book-05-dog-training',this)" title="Delete">🗑</button></td>
             </tr>
         </tbody>
     </table>
@@ -438,7 +438,9 @@ function showNextModal() {
     sortTableAlpha();
     renumberRows();
     if (_queue.length > 0) {
-      document.getElementById('deployNotice').style.display = 'block';
+      showBanner('🚀', 'Sites created! Push to GitHub to go live on Vercel',
+        'Files saved to your local sites/ folder. Run in Terminal:',
+        'cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add sites/\ngit commit -m "Add generated sample sites"\ngit push');
     }
     return;
   }
@@ -545,7 +547,7 @@ function addRow(folder, title, subtitle, author, coverDataUrl) {
       <div class="book-title">${title}</div>
       <div class="book-sub">${subtitle}</div>
     </td>
-    <td class="link-cell"><a href="sites/${folder}/index.html" target="_blank">View Site →</a></td>`;
+    <td class="link-cell"><a href="sites/${folder}/index.html" target="_blank">View Site →</a><button class="btn-del" onclick="deleteRow('${folder}',this)" title="Delete">🗑</button></td>`;
   tbody.appendChild(tr);
 }
 
@@ -560,6 +562,62 @@ function renumberRows() {
   document.querySelectorAll('#bookTableBody tr').forEach((tr, i) => {
     tr.querySelector('.num').textContent = i + 1;
   });
+}
+
+/* ── BANNER (deploy / delete notices) ── */
+function showBanner(icon, title, body, cmd) {
+  document.getElementById('deployIcon').textContent  = icon;
+  document.getElementById('deployTitle').textContent = title;
+  document.getElementById('deployBody').textContent  = body;
+  document.getElementById('deployCmd').textContent   = cmd;
+  document.getElementById('deployNotice').style.display = 'block';
+  document.getElementById('deployNotice').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ── DELETE ROW ── */
+async function deleteRow(folder, btn) {
+  const tr    = btn.closest('tr');
+  const title = tr.querySelector('.book-title')?.textContent || folder;
+
+  if (!confirm(`Delete "${title}"?\n\nThis will:\n• Remove the row from this table\n• Delete the local folder  sites/${folder}/\n• You'll need to git push to remove it from Vercel`)) return;
+
+  /* 1 ── Remove from localStorage rows */
+  let rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
+  rows = rows.filter(r => r.folder !== folder);
+  localStorage.setItem('mkRows', JSON.stringify(rows));
+
+  /* 2 ── Add to deleted-set (hides static HTML rows on next load) */
+  let deleted = JSON.parse(localStorage.getItem('mkDeleted') || '[]');
+  if (!deleted.includes(folder)) deleted.push(folder);
+  localStorage.setItem('mkDeleted', JSON.stringify(deleted));
+
+  /* 3 ── Try to delete local folder via File System Access API */
+  let localDeleted = false;
+  if (_sitesDir) {
+    try {
+      await _sitesDir.removeEntry(folder, { recursive: true });
+      localDeleted = true;
+    } catch(e) { console.warn('Could not delete local folder:', e.message); }
+  } else if (window._savedFolders?.output) {
+    try {
+      const perm = await window._savedFolders.output.requestPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        _sitesDir = window._savedFolders.output;
+        await _sitesDir.removeEntry(folder, { recursive: true });
+        localDeleted = true;
+      }
+    } catch(e) { console.warn('Could not get folder access:', e.message); }
+  }
+
+  /* 4 ── Remove row from DOM + renumber */
+  tr.remove();
+  renumberRows();
+
+  /* 5 ── Show git banner */
+  const localNote = localDeleted ? 'Local folder deleted. ' : 'Could not delete local folder (open the app and try again). ';
+  showBanner('🗑️', `"${title}" removed`,
+    localNote + 'Run in Terminal to remove from Vercel:',
+    `cd ~/Library/CloudStorage/GoogleDrive-chinmai.s@gmail.com/My\\ Drive/___Claude\\ folder/mediakitsamplesites\ngit add -A\ngit commit -m "Remove ${folder}"\ngit push`);
 }
 
 /* ── PROGRESS ── */
@@ -957,6 +1015,17 @@ window.addEventListener('DOMContentLoaded', () => {
     const titleEl = tr.querySelector('.book-title');
     if (titleEl) tr.dataset.title = titleEl.textContent.trim().toLowerCase();
   });
+
+  /* Hide any rows previously deleted (persisted across page loads) */
+  const deleted = JSON.parse(localStorage.getItem('mkDeleted') || '[]');
+  if (deleted.length) {
+    document.querySelectorAll('#bookTableBody tr').forEach(tr => {
+      const a = tr.querySelector('.link-cell a');
+      if (!a) return;
+      const folder = a.getAttribute('href').replace('sites/','').replace('/index.html','');
+      if (deleted.includes(folder)) tr.remove();
+    });
+  }
 
   /* Restore any rows created in previous sessions */
   loadPersistedRows();
