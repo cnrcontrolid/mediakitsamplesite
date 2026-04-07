@@ -554,6 +554,8 @@ async function confirmBook() {
   const num        = String(document.querySelectorAll('#bookTableBody tr').length + 1).padStart(2,'0');
   const folderName = `book-${num}-${slug}`;
 
+  let pushSucceeded = false;  /* declared outside try so it's accessible after catch */
+
   try {
     /* Extract colours from the blob URL (no dataUrl round-trip needed) */
     const { accent, dark, neutral } = await extractColors(item.blobUrl);
@@ -590,13 +592,13 @@ async function confirmBook() {
 
     /* Auto-push to GitHub → triggers Vercel deploy automatically */
     const ghToken = localStorage.getItem('githubToken');
+
     if (ghToken) {
       try {
         const filesToPush = { ...pages, 'cover.png': pngBlob };
         filesToPush[`3d-cover.${origExt}`] = new Blob([origArrayBuffer]);
         await pushFolderToGitHub(folderName, filesToPush, ghToken);
 
-        /* Verify files actually landed in GitHub before deleting local copies */
         showProgress(`🔍 Verifying files in GitHub…`);
         await new Promise(r => setTimeout(r, 800));
         const missingFiles = await verifyGitHubDeploy(folderName, ghToken);
@@ -607,12 +609,17 @@ async function confirmBook() {
         } else {
           showProgress(`✅ "${item.title}" verified in GitHub — Vercel deploying…`);
           await new Promise(r => setTimeout(r, 1500));
+          pushSucceeded = true;
         }
       } catch(e) {
         console.error('GitHub push failed:', e);
         showProgress(`⚠️ GitHub push failed: ${e.message}`);
         await new Promise(r => setTimeout(r, 3000));
       }
+    } else {
+      /* No token — can't push, don't add row */
+      showProgress(`⚠️ No GitHub token set — site not pushed. Add your token via ⚙ and try again.`);
+      await new Promise(r => setTimeout(r, 4000));
     }
 
   } catch(err) {
@@ -620,14 +627,17 @@ async function confirmBook() {
     alert(`Failed to create "${item.title}":\n${err.message}`);
   }
 
-  /* Always add row + sort, even if file writing failed */
-  const thumb = await makeThumbnail(item.blobUrl);
-  /* All uses of the cover blob URL are done — revoke to free memory */
-  if (item.blobUrl) { URL.revokeObjectURL(item.blobUrl); item.blobUrl = null; }
-  addRow(folderName, item.title, item.subtitle, item.author, thumb);
-  persistRow(folderName, item.title, item.subtitle, item.author, thumb);
-  sortTableAlpha();
-  renumberRows();
+  /* Only add to library if push succeeded — thumbnail must be made before revoking blobUrl */
+  if (pushSucceeded) {
+    const thumb = await makeThumbnail(item.blobUrl);
+    if (item.blobUrl) { URL.revokeObjectURL(item.blobUrl); item.blobUrl = null; }
+    addRow(folderName, item.title, item.subtitle, item.author, thumb);
+    persistRow(folderName, item.title, item.subtitle, item.author, thumb);
+    sortTableAlpha();
+    renumberRows();
+  } else {
+    if (item.blobUrl) { URL.revokeObjectURL(item.blobUrl); item.blobUrl = null; }
+  }
 
   hideProgress();
   _qi++;
