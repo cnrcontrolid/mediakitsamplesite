@@ -771,7 +771,7 @@ async function deleteFolderFromGitHub(folderName, token) {
 
   const updateR = await fetch(`${api}/git/refs/heads/${GH_BRANCH}`, {
     method: 'PATCH', headers,
-    body: JSON.stringify({ sha: newCommitSha, force: false })
+    body: JSON.stringify({ sha: newCommitSha, force: true })
   });
   if (!updateR.ok) { const e = await updateR.json(); throw new Error(`Ref update failed: ${e.message}`); }
 }
@@ -853,7 +853,7 @@ async function pushFolderToGitHub(folderName, files, token) {
   showProgress(`GitHub: updating branch…`);
   const updateR = await fetch(`${api}/git/refs/heads/${GH_BRANCH}`, {
     method: 'PATCH', headers,
-    body: JSON.stringify({ sha: newCommitSha, force: false })
+    body: JSON.stringify({ sha: newCommitSha, force: true })
   });
   if (!updateR.ok) { const e = await updateR.json(); throw new Error(`Ref update failed: ${e.message}`); }
 }
@@ -1054,7 +1054,7 @@ function fileToDataUrl(file) {
 
 
 function extractColors(dataUrl) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const img = new Image();
     img.onload = () => {
       const c = document.createElement('canvas');
@@ -1078,14 +1078,16 @@ function extractColors(dataUrl) {
       const neutral = `rgb(${Math.round(255-(255-aR)*.06)},${Math.round(255-(255-aG)*.06)},${Math.round(255-(255-aB)*.06)})`;
       res({ accent, dark, neutral });
     };
+    img.onerror = () => rej(new Error('extractColors: failed to load image'));
     img.src = dataUrl;
   });
 }
 
 /* ── Remove background + crop/pad to 750×1000 ── */
 function processBookCover(dataUrl) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const img = new Image();
+    img.onerror = () => rej(new Error('processBookCover: failed to load image'));
     img.onload = () => {
       const W = img.width, H = img.height;
       const src = document.createElement('canvas');
@@ -1153,8 +1155,9 @@ function processBookCover(dataUrl) {
 }
 
 function resizeDataUrl(dataUrl, maxWidth) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const img = new Image();
+    img.onerror = () => rej(new Error('resizeDataUrl: failed to load image'));
     img.onload = () => {
       const scale = img.width > maxWidth ? maxWidth / img.width : 1;
       const c = document.createElement('canvas');
@@ -1205,8 +1208,9 @@ function loadPersistedRows() {
 }
 
 function makeThumbnail(dataUrl) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const img = new Image();
+    img.onerror = () => rej(new Error('makeThumbnail: failed to load image'));
     img.onload = () => {
       const c = document.createElement('canvas');
       /* 2× display size so 70px CSS renders crisp/retina-sharp */
