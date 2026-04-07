@@ -680,8 +680,12 @@ function showBanner(icon, title, body, cmd) {
 async function deleteRow(folder, btn) {
   const tr    = btn.closest('tr');
   const title = tr.querySelector('.book-title')?.textContent || folder;
+  const ghToken = localStorage.getItem('githubToken');
 
-  if (!confirm(`Remove "${title}" from the library?\n\nThis removes the row from this page. The site will remain live on Vercel until you delete it from GitHub.`)) return;
+  const ghNote = ghToken
+    ? 'This will also delete the site folder from GitHub and take it offline.'
+    : 'No GitHub token set — the folder will remain in GitHub until deleted manually.';
+  if (!confirm(`Remove "${title}" from the library?\n\n${ghNote}`)) return;
 
   /* Remove from localStorage */
   let rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
@@ -696,6 +700,70 @@ async function deleteRow(folder, btn) {
   /* Remove row from DOM + renumber */
   tr.remove();
   renumberRows();
+
+  /* Delete folder from GitHub so library and GitHub stay in sync */
+  if (ghToken) {
+    showProgress(`Deleting "${title}" from GitHub…`);
+    try {
+      await deleteFolderFromGitHub(folder, ghToken);
+      showProgress(`✅ "${title}" removed from GitHub — Vercel will take it offline shortly`);
+      await new Promise(r => setTimeout(r, 2000));
+    } catch(e) {
+      showProgress(`⚠️ GitHub delete failed: ${e.message}`);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+    hideProgress();
+  }
+}
+
+/* Delete all files under sites/{folderName}/ in one GitHub commit */
+async function deleteFolderFromGitHub(folderName, token) {
+  const headers = {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json'
+  };
+  const api = `https://api.github.com/repos/${GH_REPO}`;
+
+  /* 1. Get HEAD */
+  const refR = await fetch(`${api}/git/ref/heads/${GH_BRANCH}`, { headers });
+  if (!refR.ok) throw new Error(`Ref fetch failed: ${refR.status}`);
+  const { object: { sha: headSha } } = await refR.json();
+
+  /* 2. Get full recursive tree */
+  const commitR = await fetch(`${api}/git/commits/${headSha}`, { headers });
+  const { tree: { sha: baseTreeSha } } = await commitR.json();
+  const treeR = await fetch(`${api}/git/trees/${baseTreeSha}?recursive=1`, { headers });
+  if (!treeR.ok) throw new Error(`Tree fetch failed: ${treeR.status}`);
+  const { tree } = await treeR.json();
+
+  /* 3. Find all files inside this folder */
+  const prefix = `sites/${folderName}/`;
+  const toDelete = tree.filter(item => item.type === 'blob' && item.path.startsWith(prefix));
+  if (toDelete.length === 0) return; /* nothing to delete */
+
+  /* 4. Create new tree with those files set to null (deleted) */
+  const deletions = toDelete.map(item => ({ path: item.path, mode: item.mode, type: 'blob', sha: null }));
+  const newTreeR = await fetch(`${api}/git/trees`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ base_tree: baseTreeSha, tree: deletions })
+  });
+  if (!newTreeR.ok) { const e = await newTreeR.json(); throw new Error(`Tree failed: ${e.message}`); }
+  const { sha: newTreeSha } = await newTreeR.json();
+
+  /* 5. Commit + update ref */
+  const newCommitR = await fetch(`${api}/git/commits`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ message: `Remove site: ${folderName}`, tree: newTreeSha, parents: [headSha] })
+  });
+  if (!newCommitR.ok) { const e = await newCommitR.json(); throw new Error(`Commit failed: ${e.message}`); }
+  const { sha: newCommitSha } = await newCommitR.json();
+
+  const updateR = await fetch(`${api}/git/refs/heads/${GH_BRANCH}`, {
+    method: 'PATCH', headers,
+    body: JSON.stringify({ sha: newCommitSha, force: false })
+  });
+  if (!updateR.ok) { const e = await updateR.json(); throw new Error(`Ref update failed: ${e.message}`); }
 }
 
 /* ── GITHUB AUTO-PUSH ── */
