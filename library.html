@@ -1054,19 +1054,18 @@ function processBookCover(dataUrl) {
       }
       if (maxX === 0) { minX = 0; minY = 0; maxX = W - 1; maxY = H - 1; }
 
-      /* Scale to fit 1100×1467 (high-res), centre, render on transparent canvas */
+      /* Tight-crop to just the book content — no padding so CSS width fills the whole image */
       const cropW = maxX - minX + 1, cropH = maxY - minY + 1;
-      const OUT_W = 1100, OUT_H = 1467;
-      const scale  = Math.min(OUT_W / cropW, OUT_H / cropH, 1);  /* never upscale */
+      const MAX_W = 1100;
+      const scale = cropW > MAX_W ? MAX_W / cropW : 1;  /* scale down only if wider than 1100px */
       const sw = Math.round(cropW * scale), sh = Math.round(cropH * scale);
-      const ox = Math.round((OUT_W - sw) / 2),  oy = Math.round((OUT_H - sh) / 2);
 
       const out = document.createElement('canvas');
-      out.width = OUT_W; out.height = OUT_H;
+      out.width = sw; out.height = sh;  /* canvas = exact content size, no transparent padding */
       const outCtx = out.getContext('2d');
       outCtx.imageSmoothingEnabled = true;
       outCtx.imageSmoothingQuality = 'high';
-      outCtx.drawImage(src, minX, minY, cropW, cropH, ox, oy, sw, sh);
+      outCtx.drawImage(src, minX, minY, cropW, cropH, 0, 0, sw, sh);
 
       /* Return Blob directly — callers create an object URL for display as needed */
       out.toBlob(res, 'image/png');
