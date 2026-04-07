@@ -58,13 +58,6 @@ td.link-cell a:hover { background: #444; }
 }
 .btn-create:hover { background: #3a3a3a; }
 .btn-create svg { flex-shrink: 0; }
-.btn-delete-local {
-  font-family: 'Raleway', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .5px; color: #c0392b; background: #fff; border: 1.5px solid #c0392b;
-  padding: 10px 16px; border-radius: 8px; cursor: pointer; display: flex; align-items: center;
-  gap: 8px; transition: background .15s, color .15s; white-space: nowrap;
-}
-.btn-delete-local:hover { background: #c0392b; color: #fff; }
 
 /* ── UPLOAD ZONE ── */
 #uploadModal {
@@ -376,6 +369,15 @@ let _queue     = [];
 let _qi        = 0;
 let _uploadedFiles = [];  /* files from the upload modal */
 
+/* Escape HTML special characters — prevents XSS when injecting into innerHTML */
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /* ── Upload modal helpers ── */
 function closeUploadModal() {
   document.getElementById('uploadModal').classList.remove('open');
@@ -472,8 +474,10 @@ async function processUploadedFiles() {
     showProgress(`Cover ${i + 1} of ${_uploadedFiles.length}: removing background…`);
     const dataUrl = await fileToDataUrl(file);
 
-    /* Remove background + crop/pad to 1100×1467 */
-    const processedDataUrl = await processBookCover(dataUrl);
+    /* Remove background + crop/pad to 1100×1467 — returns Blob directly (no FileReader round-trip) */
+    const pngBlob = await processBookCover(dataUrl);
+    /* Object URL used for modal display, extractColors, makeThumbnail — revoked after confirmBook/skipBook */
+    const blobUrl = URL.createObjectURL(pngBlob);
 
     showProgress(`Cover ${i + 1} of ${_uploadedFiles.length}: reading with Claude Vision…`);
     const smallDataUrl = await resizeDataUrl(dataUrl, 800);
@@ -489,7 +493,7 @@ async function processUploadedFiles() {
       await new Promise(r => setTimeout(r, 4000));
     }
 
-    _queue.push({ file, dataUrl: processedDataUrl, originalName: file.name, title, subtitle, author });
+    _queue.push({ file, pngBlob, blobUrl, originalName: file.name, title, subtitle, author });
 
     if (i < _uploadedFiles.length - 1) await new Promise(r => setTimeout(r, 300));
   }
@@ -519,7 +523,7 @@ function showNextModal() {
     return;
   }
   const item = _queue[_qi];
-  document.getElementById('modalCover').src      = item.dataUrl;
+  document.getElementById('modalCover').src      = item.blobUrl;
   document.getElementById('mTitle').value        = item.title;
   document.getElementById('mSubtitle').value     = item.subtitle;
   document.getElementById('mAuthor').value       = item.author;
@@ -530,6 +534,8 @@ function showNextModal() {
 
 function skipBook() {
   document.getElementById('bookModal').style.display = 'none';
+  const item = _queue[_qi];
+  if (item?.blobUrl) { URL.revokeObjectURL(item.blobUrl); item.blobUrl = null; }
   _qi++;
   showNextModal();
 }
@@ -549,11 +555,11 @@ async function confirmBook() {
   const folderName = `book-${num}-${slug}`;
 
   try {
-    /* Extract colours */
-    const { accent, dark, neutral } = await extractColors(item.dataUrl);
+    /* Extract colours from the blob URL (no dataUrl round-trip needed) */
+    const { accent, dark, neutral } = await extractColors(item.blobUrl);
 
-    /* Build all files in memory — no local disk writes needed */
-    const pngBlob = await dataUrlToPng(item.dataUrl);
+    /* pngBlob already exists from processBookCover — no second encode needed */
+    const pngBlob = item.pngBlob;
 
     const book = { title: item.title, subtitle: item.subtitle, author: item.author,
                    bright: accent, dark, neutral, folder: folderName };
@@ -615,7 +621,9 @@ async function confirmBook() {
   }
 
   /* Always add row + sort, even if file writing failed */
-  const thumb = await makeThumbnail(item.dataUrl);
+  const thumb = await makeThumbnail(item.blobUrl);
+  /* All uses of the cover blob URL are done — revoke to free memory */
+  if (item.blobUrl) { URL.revokeObjectURL(item.blobUrl); item.blobUrl = null; }
   addRow(folderName, item.title, item.subtitle, item.author, thumb);
   persistRow(folderName, item.title, item.subtitle, item.author, thumb);
   sortTableAlpha();
@@ -632,13 +640,14 @@ function addRow(folder, title, subtitle, author, coverDataUrl) {
   const tr = document.createElement('tr');
   tr.dataset.title = title.toLowerCase();
   const imgSrc = coverDataUrl || `sites/${folder}/cover.png`;
+  /* escHtml guards against XSS from API-extracted or localStorage-restored strings */
   tr.innerHTML = `
     <td class="num">—</td>
-    <td class="cover"><img src="${imgSrc}" alt="${title}" onerror="this.style.opacity='.3'"></td>
-    <td class="author">${author}</td>
+    <td class="cover"><img src="${imgSrc}" alt="${escHtml(title)}" onerror="this.style.opacity='.3'"></td>
+    <td class="author">${escHtml(author)}</td>
     <td class="title-cell">
-      <div class="book-title">${title}</div>
-      <div class="book-sub">${subtitle}</div>
+      <div class="book-title">${escHtml(title)}</div>
+      <div class="book-sub">${escHtml(subtitle)}</div>
     </td>
     <td class="link-cell"><a href="sites/${folder}/index.html" target="_blank">View Site →</a><button class="btn-del" onclick="deleteRow('${folder}',this)" title="Delete">🗑</button></td>`;
   tbody.appendChild(tr);
@@ -837,8 +846,10 @@ async function runChecklist(title, author, subtitle, folderName, pages, pngBlob)
     /* Check for transparency by reading a corner pixel of a small canvas */
     const hasTransparency = await new Promise(res => {
       if (!imgCheck.ok) return res(false);
+      const url2 = URL.createObjectURL(pngBlob);
       const img2 = new Image();
       img2.onload = () => {
+        URL.revokeObjectURL(url2);  /* revoke immediately once loaded — no setTimeout leak */
         const c = document.createElement('canvas');
         c.width = img2.naturalWidth; c.height = img2.naturalHeight;
         const ctx = c.getContext('2d');
@@ -851,10 +862,8 @@ async function runChecklist(title, author, subtitle, folderName, pages, pngBlob)
         ];
         res(corners.some(px => px[3] < 10));
       };
-      img2.onerror = () => res(false);
-      const url2 = URL.createObjectURL(pngBlob);
+      img2.onerror = () => { URL.revokeObjectURL(url2); res(false); };
       img2.src = url2;
-      setTimeout(() => URL.revokeObjectURL(url2), 5000);
     });
     check('Background removed (has transparency)', hasTransparency,                        false, hasTransparency ? 'Transparent corners detected' : 'No transparent corners — BFS may have missed background');
   } else {
@@ -901,13 +910,13 @@ async function showChecklist(title, author, subtitle, folderName, pages, pngBlob
   document.getElementById('clBookName').textContent = `"${title}" — ${folderName}`;
   document.getElementById('clBody').innerHTML = categories.map(cat => `
     <div class="cl-section">
-      <div class="cl-section-label">${cat.label}</div>
+      <div class="cl-section-label">${escHtml(cat.label)}</div>
       ${cat.checks.map(r => `
         <div class="cl-row">
           <span class="cl-icon">${r.pass ? '✅' : r.critical ? '❌' : '⚠️'}</span>
           <div class="cl-label">
-            ${r.label}
-            ${r.detail ? `<div class="cl-detail">${r.detail}</div>` : ''}
+            ${escHtml(r.label)}
+            ${r.detail ? `<div class="cl-detail">${escHtml(r.detail)}</div>` : ''}
           </div>
         </div>`).join('')}
     </div>`).join('');
@@ -965,18 +974,6 @@ function fileToDataUrl(file) {
   });
 }
 
-function dataUrlToPng(dataUrl) {
-  return new Promise(res => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.width; c.height = img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      c.toBlob(res, 'image/png');
-    };
-    img.src = dataUrl;
-  });
-}
 
 function extractColors(dataUrl) {
   return new Promise(res => {
@@ -1071,11 +1068,8 @@ function processBookCover(dataUrl) {
       outCtx.imageSmoothingQuality = 'high';
       outCtx.drawImage(src, minX, minY, cropW, cropH, ox, oy, sw, sh);
 
-      out.toBlob(blob => {
-        const r = new FileReader();
-        r.onload = e => res(e.target.result);
-        r.readAsDataURL(blob);
-      }, 'image/png');
+      /* Return Blob directly — callers create an object URL for display as needed */
+      out.toBlob(res, 'image/png');
     };
     img.src = dataUrl;
   });
@@ -1114,16 +1108,19 @@ function loadPersistedRows() {
   let rows = JSON.parse(localStorage.getItem('mkRows') || '[]');
 
   /* Auto-migrate: JPEG thumbnails have no transparency support — black BG.
-     Strip them so the img falls back to cover.png (which has proper transparency). */
-  let migrated = false;
-  rows = rows.map(r => {
-    if (r.thumb && r.thumb.startsWith('data:image/jpeg')) {
-      migrated = true;
-      return { ...r, thumb: null };
-    }
-    return r;
-  });
-  if (migrated) localStorage.setItem('mkRows', JSON.stringify(rows));
+     Guarded by mkMigrated flag so the .map() only runs once, not on every page load. */
+  if (!localStorage.getItem('mkMigrated')) {
+    let migrated = false;
+    rows = rows.map(r => {
+      if (r.thumb && r.thumb.startsWith('data:image/jpeg')) {
+        migrated = true;
+        return { ...r, thumb: null };
+      }
+      return r;
+    });
+    if (migrated) localStorage.setItem('mkRows', JSON.stringify(rows));
+    localStorage.setItem('mkMigrated', '1');
+  }
 
   rows.forEach(r => {
     if (!existing.has(r.folder)) addRow(r.folder, r.title, r.subtitle, r.author, r.thumb);
@@ -1378,6 +1375,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
   sortTableAlpha();
   renumberRows();
+
+  /* Escape key: close whichever modal is open.
+     Cancels the checklist (resolves promise with false) rather than silently leaking _checklistResolve. */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('checklistModal').classList.contains('open')) cancelChecklist();
+    else if (document.getElementById('uploadModal').classList.contains('open')) closeUploadModal();
+    else if (document.getElementById('bookModal').style.display === 'flex') skipBook();
+  });
 });
 </script>
 </body>
