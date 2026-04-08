@@ -1,6 +1,4 @@
 {
   "version": 2,
-  "redirects": [
-    { "source": "/", "destination": "/library.html", "permanent": false }
-  ]
+  "framework": "nextjs"
 }
