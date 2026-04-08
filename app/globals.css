@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Raleway', sans-serif;
+  background: #f4f4f4;
+  color: #1a1a1a;
+}
+
+header h1, .oswald { font-family: 'Oswald', sans-serif; }

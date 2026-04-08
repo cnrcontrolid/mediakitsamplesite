@@ -8,3 +8,15 @@ screenshots/
 
 # Shell scripts (local use only)
 *.command
+
+# Next.js
+node_modules/
+.next/
+out/
+
+# Environment — never commit secrets
+.env.local
+.env*.local
+
+# Generated sites (stored on server, not in git)
+sites/
